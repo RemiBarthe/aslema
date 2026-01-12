@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "a3a1a804-41c5-4ed5-8571-721a66ae8dc4",
+  "id": "484fcc34-dd7c-454e-88f1-181f450a9297",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "attempts": {
@@ -51,11 +51,10 @@
         },
         "created_at": {
           "name": "created_at",
-          "type": "text",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
-          "default": "'CURRENT_TIMESTAMP'"
+          "autoincrement": false
         }
       },
       "indexes": {},
@@ -169,6 +168,13 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+        },
+        "config": {
+          "name": "config",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {},
@@ -216,7 +222,16 @@
           "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "item_tag_idx": {
+          "name": "item_tag_idx",
+          "columns": [
+            "item_id",
+            "tag_id"
+          ],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {
         "item_tags_item_id_items_id_fk": {
           "name": "item_tags_item_id_items_id_fk",
@@ -280,16 +295,18 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
-        },
-        "alt_translations": {
-          "name": "alt_translations",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "item_locale_idx": {
+          "name": "item_locale_idx",
+          "columns": [
+            "item_id",
+            "locale"
+          ],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {
         "item_translations_item_id_items_id_fk": {
           "name": "item_translations_item_id_items_id_fk",
@@ -341,13 +358,6 @@
           "notNull": true,
           "autoincrement": false
         },
-        "phonetic": {
-          "name": "phonetic",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "audio_file": {
           "name": "audio_file",
           "type": "text",
@@ -373,11 +383,10 @@
         },
         "created_at": {
           "name": "created_at",
-          "type": "text",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
-          "default": "'CURRENT_TIMESTAMP'"
+          "autoincrement": false
         }
       },
       "indexes": {},
@@ -449,11 +458,10 @@
         },
         "created_at": {
           "name": "created_at",
-          "type": "text",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
-          "default": "'CURRENT_TIMESTAMP'"
+          "autoincrement": false
         }
       },
       "indexes": {},
@@ -512,28 +520,36 @@
         },
         "next_review_at": {
           "name": "next_review_at",
-          "type": "text",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
         "last_reviewed_at": {
           "name": "last_reviewed_at",
-          "type": "text",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
         "created_at": {
           "name": "created_at",
-          "type": "text",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
-          "default": "'CURRENT_TIMESTAMP'"
+          "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "user_item_idx": {
+          "name": "user_item_idx",
+          "columns": [
+            "user_id",
+            "item_id"
+          ],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {
         "reviews_item_id_items_id_fk": {
           "name": "reviews_item_id_items_id_fk",
@@ -635,7 +651,7 @@
         },
         "last_activity_at": {
           "name": "last_activity_at",
-          "type": "text",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false

@@ -56,7 +56,7 @@ reviews.get("/due", async (c) => {
   const userId = c.req.query("userId") || "anonymous";
   const locale = c.req.query("locale") || "fr";
   const limit = parseInt(c.req.query("limit") || "10");
-  const now = new Date().toISOString();
+  const now = new Date();
 
   const result = await db
     .select({
@@ -118,8 +118,8 @@ reviews.post("/:id/answer", async (c) => {
       easeFactor: sm2Result.easeFactor,
       interval: sm2Result.interval,
       repetitions: sm2Result.repetitions,
-      nextReviewAt: sm2Result.nextReviewAt.toISOString(),
-      lastReviewedAt: new Date().toISOString(),
+      nextReviewAt: sm2Result.nextReviewAt,
+      lastReviewedAt: new Date(),
     })
     .where(eq(reviewsTable.id, reviewId));
 
@@ -141,13 +141,13 @@ reviews.post("/:id/answer", async (c) => {
         totalXp: xpGain,
         currentStreak: 1,
         longestStreak: 1,
-        lastActivityAt: new Date().toISOString(),
+        lastActivityAt: new Date(),
       })
       .onConflictDoUpdate({
         target: userStats.userId,
         set: {
           totalXp: sql`${userStats.totalXp} + ${xpGain}`,
-          lastActivityAt: new Date().toISOString(),
+          lastActivityAt: new Date(),
         },
       });
   }
@@ -168,7 +168,7 @@ reviews.post("/start", async (c) => {
     itemIds: number[];
   }>();
 
-  const now = new Date().toISOString();
+  const now = new Date();
 
   // Create reviews for new items
   const values = body.itemIds.map((itemId) => ({

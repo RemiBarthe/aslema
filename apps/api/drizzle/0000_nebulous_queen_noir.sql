@@ -5,7 +5,7 @@ CREATE TABLE `attempts` (
 	`is_correct` integer NOT NULL,
 	`response_time_ms` integer,
 	`user_answer` text,
-	`created_at` text DEFAULT 'CURRENT_TIMESTAMP',
+	`created_at` integer,
 	FOREIGN KEY (`review_id`) REFERENCES `reviews`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
@@ -23,6 +23,7 @@ CREATE TABLE `exercises` (
 	`item_id` integer NOT NULL,
 	`game_type` text NOT NULL,
 	`question_type` text NOT NULL,
+	`config` text,
 	FOREIGN KEY (`item_id`) REFERENCES `items`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
@@ -34,25 +35,25 @@ CREATE TABLE `item_tags` (
 	FOREIGN KEY (`tag_id`) REFERENCES `tags`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE UNIQUE INDEX `item_tag_idx` ON `item_tags` (`item_id`,`tag_id`);--> statement-breakpoint
 CREATE TABLE `item_translations` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`item_id` integer NOT NULL,
 	`locale` text DEFAULT 'fr' NOT NULL,
 	`translation` text NOT NULL,
-	`alt_translations` text,
 	FOREIGN KEY (`item_id`) REFERENCES `items`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE UNIQUE INDEX `item_locale_idx` ON `item_translations` (`item_id`,`locale`);--> statement-breakpoint
 CREATE TABLE `items` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`lesson_id` integer,
 	`type` text DEFAULT 'word' NOT NULL,
 	`tunisian` text NOT NULL,
-	`phonetic` text,
 	`audio_file` text,
 	`difficulty` integer DEFAULT 1,
 	`order_index` integer DEFAULT 0,
-	`created_at` text DEFAULT 'CURRENT_TIMESTAMP',
+	`created_at` integer,
 	FOREIGN KEY (`lesson_id`) REFERENCES `lessons`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
@@ -63,7 +64,7 @@ CREATE TABLE `lessons` (
 	`icon` text,
 	`order_index` integer DEFAULT 0,
 	`is_premium` integer DEFAULT false,
-	`created_at` text DEFAULT 'CURRENT_TIMESTAMP'
+	`created_at` integer
 );
 --> statement-breakpoint
 CREATE TABLE `reviews` (
@@ -73,12 +74,13 @@ CREATE TABLE `reviews` (
 	`ease_factor` real DEFAULT 2.5,
 	`interval` integer DEFAULT 0,
 	`repetitions` integer DEFAULT 0,
-	`next_review_at` text,
-	`last_reviewed_at` text,
-	`created_at` text DEFAULT 'CURRENT_TIMESTAMP',
+	`next_review_at` integer,
+	`last_reviewed_at` integer,
+	`created_at` integer,
 	FOREIGN KEY (`item_id`) REFERENCES `items`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE UNIQUE INDEX `user_item_idx` ON `reviews` (`user_id`,`item_id`);--> statement-breakpoint
 CREATE TABLE `tags` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`name` text NOT NULL,
@@ -92,7 +94,7 @@ CREATE TABLE `user_stats` (
 	`total_xp` integer DEFAULT 0,
 	`current_streak` integer DEFAULT 0,
 	`longest_streak` integer DEFAULT 0,
-	`last_activity_at` text
+	`last_activity_at` integer
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `user_stats_user_id_unique` ON `user_stats` (`user_id`);
