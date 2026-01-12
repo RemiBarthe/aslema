@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
+import { ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { getLesson, getLessonItems, getRandomItems } from "@/lib/api";
-import type { LessonWithProgress, ItemWithTranslation } from "@tunisian/shared";
+import { getRandomItems } from "@/lib/api";
+import { useLesson, useLessonItems } from "@/composables/useQueries";
 import Button from "@/components/ui/button/Button.vue";
 import { ChevronLeft, Volume2 } from "lucide-vue-next";
 
@@ -11,10 +11,19 @@ const router = useRouter();
 
 const lessonId = computed(() => Number(route.params.lessonId));
 
-const lesson = ref<LessonWithProgress | null>(null);
-const items = ref<ItemWithTranslation[]>([]);
-const loading = ref(true);
-const error = ref<string | null>(null);
+const {
+  data: lesson,
+  isLoading: lessonLoading,
+  error: lessonError,
+} = useLesson(lessonId.value);
+const {
+  data: items,
+  isLoading: itemsLoading,
+  error: itemsError,
+} = useLessonItems(lessonId.value);
+
+const loading = computed(() => lessonLoading.value || itemsLoading.value);
+const error = computed(() => lessonError.value || itemsError.value);
 
 // Game state
 const gameMode = ref(false);
@@ -24,28 +33,15 @@ const options = ref<string[]>([]);
 const selectedAnswer = ref<string | null>(null);
 const showResult = ref(false);
 
-const currentItem = computed(() => items.value[currentIndex.value]);
-const isFinished = computed(() => currentIndex.value >= items.value.length);
+const currentItem = computed(() => items.value?.[currentIndex.value]);
+const isFinished = computed(
+  () => items.value && currentIndex.value >= items.value.length
+);
 const progress = computed(() =>
-  items.value.length
+  items.value?.length
     ? Math.round((currentIndex.value / items.value.length) * 100)
     : 0
 );
-
-onMounted(async () => {
-  try {
-    const [lessonData, itemsData] = await Promise.all([
-      getLesson(lessonId.value),
-      getLessonItems(lessonId.value),
-    ]);
-    lesson.value = lessonData;
-    items.value = itemsData;
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : "Erreur de chargement";
-  } finally {
-    loading.value = false;
-  }
-});
 
 async function startGame() {
   gameMode.value = true;
@@ -116,7 +112,7 @@ function goBack() {
             {{ lesson?.title || "Chargement..." }}
           </h1>
           <p v-if="gameMode" class="text-sm text-muted-foreground">
-            Question {{ currentIndex + 1 }} / {{ items.length }}
+            Question {{ currentIndex + 1 }} / {{ items?.length ?? 0 }}
           </p>
         </div>
         <div v-if="gameMode" class="text-sm font-medium text-primary">
@@ -148,7 +144,7 @@ function goBack() {
       v-else-if="error"
       class="flex-1 flex items-center justify-center text-destructive p-4"
     >
-      {{ error }}
+      {{ error.message }}
     </div>
 
     <!-- Game Mode -->
@@ -162,7 +158,7 @@ function goBack() {
         <div class="text-center">
           <h2 class="text-2xl font-bold">Bahi! (Bravo!)</h2>
           <p class="text-muted-foreground mt-2">
-            Score: {{ score }} / {{ items.length }}
+            Score: {{ score }} / {{ items?.length ?? 0 }}
           </p>
         </div>
         <div class="flex gap-3">
@@ -212,7 +208,9 @@ function goBack() {
         <!-- Next button -->
         <Button v-if="showResult" class="mt-4" size="lg" @click="nextQuestion">
           {{
-            currentIndex < items.length - 1 ? "Suivant" : "Voir les résultats"
+            items && currentIndex < items.length - 1
+              ? "Suivant"
+              : "Voir les résultats"
           }}
         </Button>
       </div>

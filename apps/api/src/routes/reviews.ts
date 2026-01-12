@@ -215,7 +215,9 @@ reviews.get("/stats", async (c) => {
   const reviewCounts = await db
     .select({
       total: sql<number>`COUNT(*)`,
-      due: sql<number>`SUM(CASE WHEN ${reviewsTable.nextReviewAt} <= ${Date.now()} THEN 1 ELSE 0 END)`,
+      due: sql<number>`SUM(CASE WHEN ${
+        reviewsTable.nextReviewAt
+      } <= ${Date.now()} THEN 1 ELSE 0 END)`,
     })
     .from(reviewsTable)
     .where(eq(reviewsTable.userId, userId));

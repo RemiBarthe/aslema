@@ -1,22 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
 import { RouterLink } from "vue-router";
-import { getLessons } from "@/lib/api";
-import type { LessonWithProgress } from "@tunisian/shared";
+import { useLessons } from "@/composables/useQueries";
 
-const lessons = ref<LessonWithProgress[]>([]);
-const loading = ref(true);
-const error = ref<string | null>(null);
-
-onMounted(async () => {
-  try {
-    lessons.value = await getLessons();
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : "Erreur de chargement";
-  } finally {
-    loading.value = false;
-  }
-});
+const { data: lessons, isLoading, error } = useLessons();
 </script>
 
 <template>
@@ -34,7 +20,7 @@ onMounted(async () => {
     <!-- Content -->
     <main class="p-4 pb-20">
       <!-- Loading -->
-      <div v-if="loading" class="flex justify-center py-12">
+      <div v-if="isLoading" class="flex justify-center py-12">
         <div
           class="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"
         />
@@ -42,11 +28,11 @@ onMounted(async () => {
 
       <!-- Error -->
       <div v-else-if="error" class="text-center py-12 text-destructive">
-        {{ error }}
+        {{ error.message }}
       </div>
 
       <!-- Lessons List -->
-      <div v-else class="space-y-3">
+      <div v-else-if="lessons" class="space-y-3">
         <h2 class="text-lg font-semibold mb-4">Leçons</h2>
 
         <RouterLink
