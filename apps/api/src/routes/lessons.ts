@@ -1,0 +1,101 @@
+import { Hono } from "hono";
+import { db } from "../db";
+import {
+  lessons as lessonsTable,
+  items,
+  itemTranslations,
+  reviews,
+} from "../db/schema";
+import { eq, sql, count } from "drizzle-orm";
+import type { LessonWithProgress } from "@tunisian/shared";
+
+export const lessons = new Hono();
+
+// Get all lessons with progress
+lessons.get("/", async (c) => {
+  const userId = c.req.query("userId") || "anonymous";
+
+  const result = await db
+    .select({
+      id: lessonsTable.id,
+      title: lessonsTable.title,
+      description: lessonsTable.description,
+      icon: lessonsTable.icon,
+      orderIndex: lessonsTable.orderIndex,
+      isPremium: lessonsTable.isPremium,
+    })
+    .from(lessonsTable)
+    .orderBy(lessonsTable.orderIndex);
+
+  // Get progress for each lesson
+  const lessonsWithProgress: LessonWithProgress[] = await Promise.all(
+    result.map(async (lesson) => {
+      const [{ total }] = await db
+        .select({ total: count() })
+        .from(items)
+        .where(eq(items.lessonId, lesson.id));
+
+      const [{ completed }] = await db
+        .select({ completed: count() })
+        .from(reviews)
+        .innerJoin(items, eq(reviews.itemId, items.id))
+        .where(eq(items.lessonId, lesson.id));
+
+      return {
+        ...lesson,
+        isPremium: lesson.isPremium ?? false,
+        orderIndex: lesson.orderIndex ?? 0,
+        totalItems: total,
+        completedItems: completed,
+        progress: total > 0 ? Math.round((completed / total) * 100) : 0,
+      };
+    })
+  );
+
+  return c.json({ success: true, data: lessonsWithProgress });
+});
+
+// Get single lesson
+lessons.get("/:id", async (c) => {
+  const id = parseInt(c.req.param("id"));
+
+  const [lesson] = await db
+    .select()
+    .from(lessonsTable)
+    .where(eq(lessonsTable.id, id));
+
+  if (!lesson) {
+    return c.json({ success: false, error: "Lesson not found" }, 404);
+  }
+
+  return c.json({ success: true, data: lesson });
+});
+
+// Get items for a lesson
+lessons.get("/:id/items", async (c) => {
+  const id = parseInt(c.req.param("id"));
+  const locale = c.req.query("locale") || "fr";
+
+  const result = await db
+    .select({
+      id: items.id,
+      lessonId: items.lessonId,
+      type: items.type,
+      tunisian: items.tunisian,
+      phonetic: items.phonetic,
+      audioFile: items.audioFile,
+      difficulty: items.difficulty,
+      orderIndex: items.orderIndex,
+      translation: itemTranslations.translation,
+      altTranslations: itemTranslations.altTranslations,
+    })
+    .from(items)
+    .leftJoin(
+      itemTranslations,
+      sql`${itemTranslations.itemId} = ${items.id} AND ${itemTranslations.locale} = ${locale}`
+    )
+    .where(eq(items.lessonId, id))
+    .orderBy(items.orderIndex);
+
+  return c.json({ success: true, data: result });
+});

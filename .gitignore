@@ -26,3 +26,15 @@ android
 *.njsproj
 *.sln
 *.sw?
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Turbo
+.turbo
+
+# Database
+*.db
+*.db-journal
