@@ -129,10 +129,8 @@ export const userStats = sqliteTable("user_stats", {
 // Game types and their config:
 // - qcm: uses exerciseOptions for choices
 // - fill_blank: config = { sentence: "Je ___ manger", answer: "veux", hint?: "v..." }
-// - dictation: config = { audioFile: "...", expectedText: "..." }
 // - word_order: config = { words: ["je", "veux", "manger"], correctOrder: [0, 1, 2] }
 // - match: config = { pairs: [{ left: "Aslema", right: "Bonjour" }, ...] }
-// - write: config = { expectedAnswers: ["Aslema", "aslema"] }
 
 export const exercises = sqliteTable("exercises", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -140,7 +138,7 @@ export const exercises = sqliteTable("exercises", {
     .notNull()
     .references(() => items.id, { onDelete: "cascade" }),
   gameType: text("game_type", {
-    enum: ["qcm", "fill_blank", "dictation", "word_order", "match", "write"],
+    enum: ["qcm", "fill_blank", "word_order", "match"],
   }).notNull(),
   questionType: text("question_type", {
     enum: [

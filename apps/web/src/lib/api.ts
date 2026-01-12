@@ -5,6 +5,22 @@ import type {
 } from "@tunisian/shared";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const USER_ID_KEY = "tunisian_user_id";
+
+// Generate or retrieve anonymous user ID
+function getUserId(): string {
+  let userId = localStorage.getItem(USER_ID_KEY);
+  if (!userId) {
+    userId = crypto.randomUUID();
+    localStorage.setItem(USER_ID_KEY, userId);
+  }
+  return userId;
+}
+
+// Export for use in components
+export function getAnonymousUserId(): string {
+  return getUserId();
+}
 
 async function fetchApi<T>(
   endpoint: string,
@@ -13,6 +29,7 @@ async function fetchApi<T>(
   const response = await fetch(`${API_URL}${endpoint}`, {
     headers: {
       "Content-Type": "application/json",
+      "X-User-Id": getUserId(),
     },
     ...options,
   });
@@ -61,12 +78,11 @@ export async function getRandomItems(
 
 // Reviews
 export async function startLearning(
-  userId: string,
   itemIds: number[]
 ): Promise<{ created: number }> {
   return fetchApi("/reviews/start", {
     method: "POST",
-    body: JSON.stringify({ userId, itemIds }),
+    body: JSON.stringify({ userId: getUserId(), itemIds }),
   });
 }
 
@@ -88,4 +104,39 @@ export async function submitAnswer(
     method: "POST",
     body: JSON.stringify(data),
   });
+}
+
+// Get due reviews for the current user
+export interface DueReview {
+  reviewId: number;
+  itemId: number;
+  tunisian: string;
+  audioFile: string | null;
+  translation: string;
+  easeFactor: number;
+  interval: number;
+  repetitions: number;
+}
+
+export async function getDueReviews(
+  limit = 10,
+  locale = "fr"
+): Promise<DueReview[]> {
+  return fetchApi<DueReview[]>(
+    `/reviews/due?userId=${getUserId()}&locale=${locale}&limit=${limit}`
+  );
+}
+
+// Get user stats
+export interface UserStats {
+  totalXp: number;
+  currentStreak: number;
+  longestStreak: number;
+  lastActivityAt: string | null;
+  totalReviews: number;
+  dueReviews: number;
+}
+
+export async function getUserStats(): Promise<UserStats> {
+  return fetchApi<UserStats>(`/reviews/stats?userId=${getUserId()}`);
 }

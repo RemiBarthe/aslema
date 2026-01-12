@@ -184,3 +184,51 @@ reviews.post("/start", async (c) => {
 
   return c.json({ success: true, data: { created: values.length } });
 });
+
+// Get user stats
+reviews.get("/stats", async (c) => {
+  const userId = c.req.query("userId");
+
+  if (!userId) {
+    return c.json({ success: false, error: "userId required" }, 400);
+  }
+
+  // Get or create user stats
+  const [stats] = await db
+    .select()
+    .from(userStats)
+    .where(eq(userStats.userId, userId));
+
+  if (!stats) {
+    return c.json({
+      success: true,
+      data: {
+        totalXp: 0,
+        currentStreak: 0,
+        longestStreak: 0,
+        lastActivityAt: null,
+      },
+    });
+  }
+
+  // Count total reviews and due reviews
+  const reviewCounts = await db
+    .select({
+      total: sql<number>`COUNT(*)`,
+      due: sql<number>`SUM(CASE WHEN ${reviewsTable.nextReviewAt} <= ${Date.now()} THEN 1 ELSE 0 END)`,
+    })
+    .from(reviewsTable)
+    .where(eq(reviewsTable.userId, userId));
+
+  return c.json({
+    success: true,
+    data: {
+      totalXp: stats.totalXp ?? 0,
+      currentStreak: stats.currentStreak ?? 0,
+      longestStreak: stats.longestStreak ?? 0,
+      lastActivityAt: stats.lastActivityAt?.toISOString() ?? null,
+      totalReviews: reviewCounts[0]?.total ?? 0,
+      dueReviews: reviewCounts[0]?.due ?? 0,
+    },
+  });
+});
