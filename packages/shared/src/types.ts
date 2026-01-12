@@ -20,7 +20,6 @@ export interface Item {
   lessonId: number | null;
   type: ItemType;
   tunisian: string;
-  phonetic: string | null;
   audioFile: string | null;
   difficulty: number;
   orderIndex: number;
@@ -31,12 +30,10 @@ export interface ItemTranslation {
   itemId: number;
   locale: string;
   translation: string;
-  altTranslations: string[] | null;
 }
 
 export interface ItemWithTranslation extends Item {
   translation: string;
-  altTranslations: string[] | null;
 }
 
 // ═══════════════════════════════════════════════════════════════

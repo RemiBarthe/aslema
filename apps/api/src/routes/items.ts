@@ -16,12 +16,10 @@ itemsRouter.get("/", async (c) => {
       lessonId: itemsTable.lessonId,
       type: itemsTable.type,
       tunisian: itemsTable.tunisian,
-      phonetic: itemsTable.phonetic,
       audioFile: itemsTable.audioFile,
       difficulty: itemsTable.difficulty,
       orderIndex: itemsTable.orderIndex,
       translation: itemTranslations.translation,
-      altTranslations: itemTranslations.altTranslations,
     })
     .from(itemsTable)
     .leftJoin(
@@ -44,12 +42,10 @@ itemsRouter.get("/:id", async (c) => {
       lessonId: itemsTable.lessonId,
       type: itemsTable.type,
       tunisian: itemsTable.tunisian,
-      phonetic: itemsTable.phonetic,
       audioFile: itemsTable.audioFile,
       difficulty: itemsTable.difficulty,
       orderIndex: itemsTable.orderIndex,
       translation: itemTranslations.translation,
-      altTranslations: itemTranslations.altTranslations,
     })
     .from(itemsTable)
     .leftJoin(
@@ -75,7 +71,6 @@ itemsRouter.get("/random/:count", async (c) => {
     .select({
       id: itemsTable.id,
       tunisian: itemsTable.tunisian,
-      phonetic: itemsTable.phonetic,
       translation: itemTranslations.translation,
     })
     .from(itemsTable)

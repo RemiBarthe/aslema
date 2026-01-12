@@ -53,9 +53,7 @@ export async function getRandomItems(
   count: number,
   excludeId?: number,
   locale = "fr"
-): Promise<
-  Pick<ItemWithTranslation, "id" | "tunisian" | "phonetic" | "translation">[]
-> {
+): Promise<Pick<ItemWithTranslation, "id" | "tunisian" | "translation">[]> {
   const params = new URLSearchParams({ locale });
   if (excludeId) params.set("excludeId", String(excludeId));
   return fetchApi(`/items/random/${count}?${params}`);

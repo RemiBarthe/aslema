@@ -23,7 +23,6 @@ export const items = sqliteTable("items", {
     .notNull()
     .default("word"),
   tunisian: text("tunisian").notNull(),
-  phonetic: text("phonetic"),
   audioFile: text("audio_file"),
   difficulty: integer("difficulty").default(1),
   orderIndex: integer("order_index").default(0),
@@ -37,7 +36,6 @@ export const itemTranslations = sqliteTable("item_translations", {
     .references(() => items.id, { onDelete: "cascade" }),
   locale: text("locale").notNull().default("fr"),
   translation: text("translation").notNull(),
-  altTranslations: text("alt_translations", { mode: "json" }).$type<string[]>(),
 });
 
 export const tags = sqliteTable("tags", {

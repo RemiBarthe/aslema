@@ -181,9 +181,6 @@ function goBack() {
           <h2 class="text-3xl font-bold text-center">
             {{ currentItem?.tunisian }}
           </h2>
-          <p class="text-lg text-muted-foreground">
-            {{ currentItem?.phonetic }}
-          </p>
         </div>
 
         <!-- Options -->
@@ -233,8 +230,9 @@ function goBack() {
             <div class="flex items-start justify-between gap-3">
               <div>
                 <h3 class="font-medium">{{ item.tunisian }}</h3>
-                <p class="text-sm text-muted-foreground">{{ item.phonetic }}</p>
-                <p class="text-sm mt-1">{{ item.translation }}</p>
+                <p class="text-sm text-muted-foreground">
+                  {{ item.translation }}
+                </p>
               </div>
               <button
                 v-if="item.audioFile"

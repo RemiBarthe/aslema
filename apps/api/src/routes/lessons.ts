@@ -82,12 +82,10 @@ lessons.get("/:id/items", async (c) => {
       lessonId: items.lessonId,
       type: items.type,
       tunisian: items.tunisian,
-      phonetic: items.phonetic,
       audioFile: items.audioFile,
       difficulty: items.difficulty,
       orderIndex: items.orderIndex,
       translation: itemTranslations.translation,
-      altTranslations: itemTranslations.altTranslations,
     })
     .from(items)
     .leftJoin(
