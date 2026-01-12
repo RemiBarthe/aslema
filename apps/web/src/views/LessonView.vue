@@ -54,7 +54,10 @@ async function loadOptions() {
   if (!currentItem.value) return;
 
   try {
-    const distractors = await getRandomItems(3, currentItem.value.id);
+    const distractors = await getRandomItems(3, {
+      excludeId: currentItem.value.id,
+      lessonId: lessonId.value,
+    });
     const allOptions = [
       currentItem.value.translation,
       ...distractors.map((d) => d.translation).filter(Boolean),

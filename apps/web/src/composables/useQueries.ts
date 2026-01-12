@@ -88,10 +88,13 @@ export function useSubmitAnswer() {
 }
 
 // Random items for QCM (no cache)
-export function useRandomItems(count: number, excludeId?: number) {
+export function useRandomItems(
+  count: number,
+  options?: { excludeId?: number; lessonId?: number }
+) {
   return useQuery({
-    queryKey: ["items", "random", count, excludeId],
-    queryFn: () => getRandomItems(count, excludeId),
+    queryKey: ["items", "random", count, options?.excludeId, options?.lessonId],
+    queryFn: () => getRandomItems(count, options),
     staleTime: 0,
     gcTime: 0,
   });

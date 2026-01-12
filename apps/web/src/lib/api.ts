@@ -68,11 +68,11 @@ export async function getLessonItems(
 // Items
 export async function getRandomItems(
   count: number,
-  excludeId?: number,
-  locale = "fr"
+  options?: { excludeId?: number; lessonId?: number; locale?: string }
 ): Promise<Pick<ItemWithTranslation, "id" | "tunisian" | "translation">[]> {
-  const params = new URLSearchParams({ locale });
-  if (excludeId) params.set("excludeId", String(excludeId));
+  const params = new URLSearchParams({ locale: options?.locale ?? "fr" });
+  if (options?.excludeId) params.set("excludeId", String(options.excludeId));
+  if (options?.lessonId) params.set("lessonId", String(options.lessonId));
   return fetchApi(`/items/random/${count}?${params}`);
 }
 

@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { db } from "../db";
 import { items as itemsTable, itemTranslations } from "../db/schema";
-import { eq, sql, ne } from "drizzle-orm";
+import { eq, sql, ne, and } from "drizzle-orm";
 
 const itemsRouter = new Hono();
 
@@ -65,9 +65,19 @@ itemsRouter.get("/:id", async (c) => {
 itemsRouter.get("/random/:count", async (c) => {
   const count = parseInt(c.req.param("count"));
   const excludeId = c.req.query("excludeId");
+  const lessonId = c.req.query("lessonId");
   const locale = c.req.query("locale") || "fr";
 
-  let query = db
+  // Build conditions
+  const conditions = [];
+  if (excludeId) {
+    conditions.push(ne(itemsTable.id, parseInt(excludeId)));
+  }
+  if (lessonId) {
+    conditions.push(eq(itemsTable.lessonId, parseInt(lessonId)));
+  }
+
+  const result = await db
     .select({
       id: itemsTable.id,
       tunisian: itemsTable.tunisian,
@@ -78,14 +88,9 @@ itemsRouter.get("/random/:count", async (c) => {
       itemTranslations,
       sql`${itemTranslations.itemId} = ${itemsTable.id} AND ${itemTranslations.locale} = ${locale}`
     )
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(sql`RANDOM()`)
     .limit(count);
-
-  if (excludeId) {
-    query = query.where(ne(itemsTable.id, parseInt(excludeId))) as typeof query;
-  }
-
-  const result = await query;
 
   return c.json({ success: true, data: result });
 });
