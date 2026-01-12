@@ -7,7 +7,7 @@ import {
   reviews,
 } from "../db/schema";
 import { eq, sql, count } from "drizzle-orm";
-import type { LessonWithProgress } from "@tunisian/shared";
+import type { LessonWithProgress } from "@aslema/shared";
 
 export const lessons = new Hono();
 

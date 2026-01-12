@@ -1,5 +1,5 @@
 {
-    "name": "@tunisian/api",
+    "name": "@aslema/api",
     "private": true,
     "version": "0.0.0",
     "type": "module",
@@ -13,7 +13,7 @@
         "db:seed": "bun run src/seed.ts"
     },
     "dependencies": {
-        "@tunisian/shared": "workspace:*",
+        "@aslema/shared": "workspace:*",
         "@libsql/client": "^0.17.0",
         "drizzle-orm": "^0.44.0",
         "hono": "^4.7.0"

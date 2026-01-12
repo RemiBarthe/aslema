@@ -1,5 +1,5 @@
 {
-    "name": "@tunisian/web",
+    "name": "@aslema/web",
     "private": true,
     "version": "0.0.0",
     "type": "module",
@@ -10,7 +10,7 @@
     },
     "dependencies": {
         "@tanstack/vue-query": "^5.92.5",
-        "@tunisian/shared": "workspace:*",
+        "@aslema/shared": "workspace:*",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "lucide-vue-next": "^0.562.0",

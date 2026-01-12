@@ -11,7 +11,7 @@ const { data: lessons, isLoading, error } = useLessons();
     <header
       class="sticky top-0 z-10 border-b bg-background/95 backdrop-blur p-4"
     >
-      <h1 class="font-heading text-xl font-bold text-center">Ahla! 👋</h1>
+      <h1 class="font-heading text-xl font-bold text-center">Aslema ! 👋</h1>
       <p class="text-center text-sm text-muted-foreground">
         Apprends le tunisien
       </p>

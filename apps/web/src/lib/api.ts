@@ -2,7 +2,7 @@ import type {
   ApiResponse,
   LessonWithProgress,
   ItemWithTranslation,
-} from "@tunisian/shared";
+} from "@aslema/shared";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 const USER_ID_KEY = "tunisian_user_id";

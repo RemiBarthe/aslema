@@ -8,7 +8,7 @@ import {
   userStats,
 } from "../db/schema";
 import { eq, sql, lte, and } from "drizzle-orm";
-import type { SM2Quality, SM2Result } from "@tunisian/shared";
+import type { SM2Quality, SM2Result } from "@aslema/shared";
 
 export const reviews = new Hono();
 

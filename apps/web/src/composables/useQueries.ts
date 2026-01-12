@@ -9,7 +9,7 @@ import {
   submitAnswer,
   getRandomItems,
 } from "@/lib/api";
-import type { SM2Quality } from "@tunisian/shared";
+import type { SM2Quality } from "@aslema/shared";
 
 // Lessons
 export function useLessons() {

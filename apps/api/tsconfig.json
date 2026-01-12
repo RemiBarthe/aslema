@@ -10,8 +10,8 @@
     "outDir": "./dist",
     "types": ["@types/bun"],
     "paths": {
-      "@tunisian/shared": ["../../packages/shared/src"],
-      "@tunisian/shared/*": ["../../packages/shared/src/*"]
+      "@aslema/shared": ["../../packages/shared/src"],
+      "@aslema/shared/*": ["../../packages/shared/src/*"]
     }
   },
   "include": ["src/**/*", "*.config.ts"],
