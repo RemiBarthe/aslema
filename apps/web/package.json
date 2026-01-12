@@ -9,8 +9,9 @@
         "preview": "vite preview"
     },
     "dependencies": {
-        "@tanstack/vue-query": "^5.92.5",
         "@aslema/shared": "workspace:*",
+        "@tanstack/vue-query": "^5.92.5",
+        "@vueuse/core": "^14.1.0",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "lucide-vue-next": "^0.562.0",
