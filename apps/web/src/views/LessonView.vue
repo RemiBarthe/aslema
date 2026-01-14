@@ -102,38 +102,33 @@ function goBack() {
 
 <template>
   <div class="min-h-screen bg-background flex flex-col">
-    <!-- Header -->
-    <header
-      class="sticky top-0 z-10 border-b bg-background/95 backdrop-blur p-4"
-    >
-      <div class="flex items-center gap-3">
-        <button @click="goBack" class="p-2 -ml-2 hover:bg-accent rounded-lg">
-          <ChevronLeft class="w-5 h-5" />
-        </button>
-        <div class="flex-1 min-w-0">
-          <h1 class="font-medium truncate">
-            {{ lesson?.title || "Chargement..." }}
-          </h1>
-          <p v-if="gameMode" class="text-sm text-muted-foreground">
-            Question {{ currentIndex + 1 }} / {{ items?.length ?? 0 }}
-          </p>
-        </div>
-        <div v-if="gameMode" class="text-sm font-medium text-primary">
-          {{ score }} pts
-        </div>
+    <div class="flex items-center gap-3">
+      <button @click="goBack" class="p-2 -ml-2 hover:bg-accent rounded-lg">
+        <ChevronLeft class="w-5 h-5" />
+      </button>
+      <div class="flex-1 min-w-0">
+        <h1 class="font-medium truncate">
+          {{ lesson?.title || "Chargement..." }}
+        </h1>
+        <p v-if="gameMode" class="text-sm text-muted-foreground">
+          Question {{ currentIndex + 1 }} / {{ items?.length ?? 0 }}
+        </p>
       </div>
+      <div v-if="gameMode" class="text-sm font-medium text-primary">
+        {{ score }} pts
+      </div>
+    </div>
 
-      <!-- Progress bar -->
+    <!-- Progress bar -->
+    <div
+      v-if="gameMode"
+      class="mt-3 h-1.5 bg-secondary rounded-full overflow-hidden"
+    >
       <div
-        v-if="gameMode"
-        class="mt-3 h-1.5 bg-secondary rounded-full overflow-hidden"
-      >
-        <div
-          class="h-full bg-primary transition-all duration-300"
-          :style="{ width: `${progress}%` }"
-        />
-      </div>
-    </header>
+        class="h-full bg-primary transition-all duration-300"
+        :style="{ width: `${progress}%` }"
+      />
+    </div>
 
     <!-- Loading -->
     <div v-if="loading" class="flex-1 flex items-center justify-center">
@@ -221,30 +216,28 @@ function goBack() {
 
     <!-- Word List Mode -->
     <template v-else>
-      <main class="flex-1 p-4">
-        <div class="space-y-3">
-          <div
-            v-for="item in items"
-            :key="item.id"
-            class="p-4 rounded-xl border bg-card"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div>
-                <h3 class="font-medium">{{ item.tunisian }}</h3>
-                <p class="text-sm text-muted-foreground">
-                  {{ item.translation }}
-                </p>
-              </div>
-              <button
-                v-if="item.audioFile"
-                class="p-2 hover:bg-accent rounded-lg"
-              >
-                <Volume2 class="w-5 h-5" />
-              </button>
+      <div class="space-y-3">
+        <div
+          v-for="item in items"
+          :key="item.id"
+          class="p-4 rounded-xl border bg-card"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h3 class="font-medium">{{ item.tunisian }}</h3>
+              <p class="text-sm text-muted-foreground">
+                {{ item.translation }}
+              </p>
             </div>
+            <button
+              v-if="item.audioFile"
+              class="p-2 hover:bg-accent rounded-lg"
+            >
+              <Volume2 class="w-5 h-5" />
+            </button>
           </div>
         </div>
-      </main>
+      </div>
 
       <!-- Start button -->
       <div class="sticky bottom-0 p-4 border-t bg-background">
