@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import { RouterLink } from "vue-router";
-import { useLessons } from "@/composables/useQueries";
+import { useLessons, useUserStats } from "@/composables/useQueries";
 import Progress from "@/components/ui/progress/Progress.vue";
 import {
   Item,
@@ -22,6 +23,12 @@ import Skeleton from "@/components/ui/skeleton/Skeleton.vue";
 import Button from "@/components/ui/button/Button.vue";
 
 const { data: lessons, isLoading, error } = useLessons();
+const { data: stats, isLoading: statsLoading } = useUserStats();
+
+const hasItemsToReview = computed(() => {
+  if (!stats.value) return false;
+  return stats.value.dueReviews > 0 || stats.value.newItems > 0;
+});
 </script>
 
 <template>
@@ -37,7 +44,12 @@ const { data: lessons, isLoading, error } = useLessons();
         <ItemContent>
           <ItemTitle class="text-base">À réviser</ItemTitle>
 
-          <ItemDescription>8 mots</ItemDescription>
+          <ItemDescription>
+            <template v-if="statsLoading">
+              <Skeleton class="h-4 w-12" />
+            </template>
+            <template v-else> {{ stats?.dueReviews ?? 0 }} mots </template>
+          </ItemDescription>
         </ItemContent>
       </Item>
 
@@ -49,7 +61,12 @@ const { data: lessons, isLoading, error } = useLessons();
         <ItemContent>
           <ItemTitle class="text-base">Nouveaux</ItemTitle>
 
-          <ItemDescription>5 mots</ItemDescription>
+          <ItemDescription>
+            <template v-if="statsLoading">
+              <Skeleton class="h-4 w-12" />
+            </template>
+            <template v-else> {{ stats?.newItems ?? 0 }} mots </template>
+          </ItemDescription>
         </ItemContent>
       </Item>
 
@@ -61,12 +78,25 @@ const { data: lessons, isLoading, error } = useLessons();
         <ItemContent>
           <ItemTitle class="text-base">Série</ItemTitle>
 
-          <ItemDescription>2 jours</ItemDescription>
+          <ItemDescription>
+            <template v-if="statsLoading">
+              <Skeleton class="h-4 w-12" />
+            </template>
+            <template v-else>
+              {{ stats?.currentStreak ?? 0 }} jour{{
+                (stats?.currentStreak ?? 0) > 1 ? "s" : ""
+              }}
+            </template>
+          </ItemDescription>
         </ItemContent>
       </Item>
     </div>
 
-    <Button> Commencer la révision </Button>
+    <RouterLink to="/review" class="w-full flex justify-center">
+      <Button :disabled="!hasItemsToReview">
+        {{ hasItemsToReview ? "Commencer la révision" : "Rien à réviser" }}
+      </Button>
+    </RouterLink>
   </div>
 
   <h2 class="text-lg font-semibold mb-4 font-heading">Leçons</h2>

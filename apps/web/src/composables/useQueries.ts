@@ -5,6 +5,7 @@ import {
   getLessonItems,
   getDueReviews,
   getUserStats,
+  getTodaySession,
   startLearning,
   submitAnswer,
   getRandomItems,
@@ -28,11 +29,15 @@ export function useLesson(id: number) {
   });
 }
 
-export function useLessonItems(lessonId: number, locale = "fr") {
+export function useLessonItems(
+  lessonId: number,
+  locale = "fr",
+  shuffle = false
+) {
   return useQuery({
-    queryKey: ["lessons", lessonId, "items", locale],
-    queryFn: () => getLessonItems(lessonId, locale),
-    staleTime: Infinity,
+    queryKey: ["lessons", lessonId, "items", locale, shuffle],
+    queryFn: () => getLessonItems(lessonId, locale, shuffle),
+    staleTime: shuffle ? 0 : Infinity, // Don't cache shuffled results
   });
 }
 
@@ -51,6 +56,15 @@ export function useUserStats() {
     queryKey: ["reviews", "stats"],
     queryFn: getUserStats,
     staleTime: 1000 * 30,
+    refetchOnWindowFocus: true,
+  });
+}
+
+export function useTodaySession(newLimit = 5, dueLimit = 20, locale = "fr") {
+  return useQuery({
+    queryKey: ["reviews", "today", newLimit, dueLimit, locale],
+    queryFn: () => getTodaySession(newLimit, dueLimit, locale),
+    staleTime: 1000 * 60,
     refetchOnWindowFocus: true,
   });
 }

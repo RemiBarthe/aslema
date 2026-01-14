@@ -58,10 +58,13 @@ export async function getLesson(id: number): Promise<LessonWithProgress> {
 
 export async function getLessonItems(
   lessonId: number,
-  locale = "fr"
+  locale = "fr",
+  shuffle = false
 ): Promise<ItemWithTranslation[]> {
+  const params = new URLSearchParams({ locale });
+  if (shuffle) params.set("shuffle", "true");
   return fetchApi<ItemWithTranslation[]>(
-    `/lessons/${lessonId}/items?locale=${locale}`
+    `/lessons/${lessonId}/items?${params}`
   );
 }
 
@@ -133,10 +136,41 @@ export interface UserStats {
   currentStreak: number;
   longestStreak: number;
   lastActivityAt: string | null;
-  totalReviews: number;
   dueReviews: number;
+  newItems: number;
+  totalNewAvailable: number;
 }
 
 export async function getUserStats(): Promise<UserStats> {
   return fetchApi<UserStats>(`/reviews/stats?userId=${getUserId()}`);
+}
+
+// Get today's learning session
+export interface TodayItem {
+  reviewId: number | null;
+  itemId: number;
+  tunisian: string;
+  audioFile: string | null;
+  translation: string;
+  easeFactor: number;
+  interval: number;
+  repetitions: number;
+  type: "review" | "new";
+}
+
+export interface TodaySession {
+  dueReviews: TodayItem[];
+  newItems: TodayItem[];
+  totalDue: number;
+  totalNew: number;
+}
+
+export async function getTodaySession(
+  newLimit = 5,
+  dueLimit = 20,
+  locale = "fr"
+): Promise<TodaySession> {
+  return fetchApi<TodaySession>(
+    `/reviews/today?userId=${getUserId()}&locale=${locale}&newLimit=${newLimit}&dueLimit=${dueLimit}`
+  );
 }

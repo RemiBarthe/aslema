@@ -6,14 +6,15 @@ import {
   itemTranslations,
   reviews,
 } from "../db/schema";
-import { eq, sql, count } from "drizzle-orm";
+import { eq, sql, count, and, gte } from "drizzle-orm";
 import type { LessonWithProgress } from "@aslema/shared";
 
 export const lessons = new Hono();
 
 // Get all lessons with progress
 lessons.get("/", async (c) => {
-  const userId = c.req.query("userId") || "anonymous";
+  const userId =
+    c.req.header("X-User-Id") || c.req.query("userId") || "anonymous";
 
   const result = await db
     .select({
@@ -35,11 +36,18 @@ lessons.get("/", async (c) => {
         .from(items)
         .where(eq(items.lessonId, lesson.id));
 
+      // Count items learned by THIS user (at least 1 successful review)
       const [{ completed }] = await db
         .select({ completed: count() })
         .from(reviews)
         .innerJoin(items, eq(reviews.itemId, items.id))
-        .where(eq(items.lessonId, lesson.id));
+        .where(
+          and(
+            eq(items.lessonId, lesson.id),
+            eq(reviews.userId, userId),
+            gte(reviews.repetitions, 1)
+          )
+        );
 
       return {
         ...lesson,
@@ -75,6 +83,7 @@ lessons.get("/:id", async (c) => {
 lessons.get("/:id/items", async (c) => {
   const id = parseInt(c.req.param("id"));
   const locale = c.req.query("locale") || "fr";
+  const shuffle = c.req.query("shuffle") === "true";
 
   const result = await db
     .select({
@@ -93,7 +102,7 @@ lessons.get("/:id/items", async (c) => {
       sql`${itemTranslations.itemId} = ${items.id} AND ${itemTranslations.locale} = ${locale}`
     )
     .where(eq(items.lessonId, id))
-    .orderBy(items.orderIndex);
+    .orderBy(shuffle ? sql`RANDOM()` : items.orderIndex);
 
   return c.json({ success: true, data: result });
 });

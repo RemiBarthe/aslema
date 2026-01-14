@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { getRandomItems } from "@/lib/api";
+import { getRandomItems, getLessonItems } from "@/lib/api";
 import { useLesson, useLessonItems } from "@/composables/useQueries";
 import Button from "@/components/ui/button/Button.vue";
 import { ChevronLeft, Volume2 } from "lucide-vue-next";
+import type { ItemWithTranslation } from "@aslema/shared";
 
 const route = useRoute();
 const router = useRouter();
@@ -27,23 +28,28 @@ const error = computed(() => lessonError.value || itemsError.value);
 
 // Game state
 const gameMode = ref(false);
+const gameItems = ref<ItemWithTranslation[]>([]);
 const currentIndex = ref(0);
 const score = ref(0);
 const options = ref<string[]>([]);
 const selectedAnswer = ref<string | null>(null);
 const showResult = ref(false);
 
-const currentItem = computed(() => items.value?.[currentIndex.value]);
+const currentItem = computed(() => gameItems.value?.[currentIndex.value]);
 const isFinished = computed(
-  () => items.value && currentIndex.value >= items.value.length
+  () =>
+    gameItems.value.length > 0 && currentIndex.value >= gameItems.value.length
 );
 const progress = computed(() =>
-  items.value?.length
-    ? Math.round((currentIndex.value / items.value.length) * 100)
+  gameItems.value?.length
+    ? Math.round((currentIndex.value / gameItems.value.length) * 100)
     : 0
 );
 
 async function startGame() {
+  // Fetch shuffled items for the quiz
+  const shuffledItems = await getLessonItems(lessonId.value, "fr", true);
+  gameItems.value = shuffledItems;
   gameMode.value = true;
   currentIndex.value = 0;
   score.value = 0;

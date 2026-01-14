@@ -7,7 +7,7 @@ import {
   itemTranslations,
   userStats,
 } from "../db/schema";
-import { eq, sql, lte, and } from "drizzle-orm";
+import { eq, sql, lte, and, gte } from "drizzle-orm";
 import type { SM2Quality, SM2Result } from "@aslema/shared";
 
 export const reviews = new Hono();
@@ -134,20 +134,62 @@ reviews.post("/:id/answer", async (c) => {
   // Update user stats
   if (body.isCorrect) {
     const xpGain = body.quality >= 4 ? 15 : 10;
+    const now = new Date();
+    const startOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    );
+
+    // Get current stats to calculate streak
+    const [currentStats] = await db
+      .select()
+      .from(userStats)
+      .where(eq(userStats.userId, review.userId));
+
+    let newStreak = 1;
+    let newLongestStreak = 1;
+
+    if (currentStats?.lastActivityAt) {
+      const lastActivity = new Date(currentStats.lastActivityAt);
+      const startOfLastActivity = new Date(
+        lastActivity.getFullYear(),
+        lastActivity.getMonth(),
+        lastActivity.getDate()
+      );
+      const daysDiff = Math.floor(
+        (startOfToday.getTime() - startOfLastActivity.getTime()) /
+          (1000 * 60 * 60 * 24)
+      );
+
+      if (daysDiff === 0) {
+        // Same day - keep current streak
+        newStreak = currentStats.currentStreak ?? 1;
+      } else if (daysDiff === 1) {
+        // Consecutive day - increment streak
+        newStreak = (currentStats.currentStreak ?? 0) + 1;
+      }
+      // else daysDiff > 1: streak resets to 1
+
+      newLongestStreak = Math.max(newStreak, currentStats.longestStreak ?? 0);
+    }
+
     await db
       .insert(userStats)
       .values({
         userId: review.userId,
         totalXp: xpGain,
-        currentStreak: 1,
-        longestStreak: 1,
-        lastActivityAt: new Date(),
+        currentStreak: newStreak,
+        longestStreak: newLongestStreak,
+        lastActivityAt: now,
       })
       .onConflictDoUpdate({
         target: userStats.userId,
         set: {
           totalXp: sql`${userStats.totalXp} + ${xpGain}`,
-          lastActivityAt: new Date(),
+          currentStreak: newStreak,
+          longestStreak: newLongestStreak,
+          lastActivityAt: now,
         },
       });
   }
@@ -188,6 +230,7 @@ reviews.post("/start", async (c) => {
 // Get user stats
 reviews.get("/stats", async (c) => {
   const userId = c.req.query("userId");
+  const dailyNewLimit = parseInt(c.req.query("dailyNewLimit") || "5");
 
   if (!userId) {
     return c.json({ success: false, error: "userId required" }, 400);
@@ -199,38 +242,148 @@ reviews.get("/stats", async (c) => {
     .from(userStats)
     .where(eq(userStats.userId, userId));
 
-  if (!stats) {
-    return c.json({
-      success: true,
-      data: {
-        totalXp: 0,
-        currentStreak: 0,
-        longestStreak: 0,
-        lastActivityAt: null,
-      },
-    });
+  const now = new Date();
+  const startOfToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate()
+  );
+
+  // Count due reviews (items user has learned at least once and are due)
+  const [dueCount] = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(reviewsTable)
+    .where(
+      and(
+        eq(reviewsTable.userId, userId),
+        gte(reviewsTable.repetitions, 1),
+        lte(reviewsTable.nextReviewAt, now)
+      )
+    );
+
+  // Count total new items available (items not yet in reviews for this user)
+  const [totalNewCount] = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(items)
+    .where(
+      sql`${items.id} NOT IN (
+        SELECT ${reviewsTable.itemId} FROM ${reviewsTable} 
+        WHERE ${reviewsTable.userId} = ${userId}
+      )`
+    );
+
+  // Calculate streak
+  let currentStreak = stats?.currentStreak ?? 0;
+  if (stats?.lastActivityAt) {
+    const lastActivity = new Date(stats.lastActivityAt);
+    const startOfLastActivity = new Date(
+      lastActivity.getFullYear(),
+      lastActivity.getMonth(),
+      lastActivity.getDate()
+    );
+    const daysDiff = Math.floor(
+      (startOfToday.getTime() - startOfLastActivity.getTime()) /
+        (1000 * 60 * 60 * 24)
+    );
+
+    if (daysDiff > 1) {
+      // Streak broken
+      currentStreak = 0;
+    }
   }
 
-  // Count total reviews and due reviews
-  const reviewCounts = await db
-    .select({
-      total: sql<number>`COUNT(*)`,
-      due: sql<number>`SUM(CASE WHEN ${
-        reviewsTable.nextReviewAt
-      } <= ${Date.now()} THEN 1 ELSE 0 END)`,
-    })
-    .from(reviewsTable)
-    .where(eq(reviewsTable.userId, userId));
+  // For display: show how many new items for today's session (capped by daily limit)
+  const newItemsToday = Math.min(totalNewCount?.count ?? 0, dailyNewLimit);
 
   return c.json({
     success: true,
     data: {
-      totalXp: stats.totalXp ?? 0,
-      currentStreak: stats.currentStreak ?? 0,
-      longestStreak: stats.longestStreak ?? 0,
-      lastActivityAt: stats.lastActivityAt?.toISOString() ?? null,
-      totalReviews: reviewCounts[0]?.total ?? 0,
-      dueReviews: reviewCounts[0]?.due ?? 0,
+      totalXp: stats?.totalXp ?? 0,
+      currentStreak,
+      longestStreak: stats?.longestStreak ?? 0,
+      lastActivityAt: stats?.lastActivityAt?.toISOString() ?? null,
+      dueReviews: dueCount?.count ?? 0,
+      newItems: newItemsToday,
+      totalNewAvailable: totalNewCount?.count ?? 0,
+    },
+  });
+});
+
+// Get today's learning session (due reviews + new items)
+reviews.get("/today", async (c) => {
+  const userId = c.req.query("userId");
+  const locale = c.req.query("locale") || "fr";
+  const newLimit = parseInt(c.req.query("newLimit") || "5");
+  const dueLimit = parseInt(c.req.query("dueLimit") || "20");
+
+  if (!userId) {
+    return c.json({ success: false, error: "userId required" }, 400);
+  }
+
+  const now = new Date();
+
+  // Get due reviews (only items that have been learned at least once)
+  const dueReviews = await db
+    .select({
+      reviewId: reviewsTable.id,
+      itemId: items.id,
+      tunisian: items.tunisian,
+      audioFile: items.audioFile,
+      translation: itemTranslations.translation,
+      easeFactor: reviewsTable.easeFactor,
+      interval: reviewsTable.interval,
+      repetitions: reviewsTable.repetitions,
+      type: sql<"review">`'review'`,
+    })
+    .from(reviewsTable)
+    .innerJoin(items, eq(reviewsTable.itemId, items.id))
+    .leftJoin(
+      itemTranslations,
+      sql`${itemTranslations.itemId} = ${items.id} AND ${itemTranslations.locale} = ${locale}`
+    )
+    .where(
+      and(
+        eq(reviewsTable.userId, userId),
+        gte(reviewsTable.repetitions, 1),
+        lte(reviewsTable.nextReviewAt, now)
+      )
+    )
+    .limit(dueLimit);
+
+  // Get new items (not yet learned by this user)
+  const newItems = await db
+    .select({
+      reviewId: sql<null>`NULL`,
+      itemId: items.id,
+      tunisian: items.tunisian,
+      audioFile: items.audioFile,
+      translation: itemTranslations.translation,
+      easeFactor: sql<number>`2.5`,
+      interval: sql<number>`0`,
+      repetitions: sql<number>`0`,
+      type: sql<"new">`'new'`,
+    })
+    .from(items)
+    .leftJoin(
+      itemTranslations,
+      sql`${itemTranslations.itemId} = ${items.id} AND ${itemTranslations.locale} = ${locale}`
+    )
+    .where(
+      sql`${items.id} NOT IN (
+        SELECT ${reviewsTable.itemId} FROM ${reviewsTable} 
+        WHERE ${reviewsTable.userId} = ${userId}
+      )`
+    )
+    .orderBy(items.orderIndex)
+    .limit(newLimit);
+
+  return c.json({
+    success: true,
+    data: {
+      dueReviews,
+      newItems,
+      totalDue: dueReviews.length,
+      totalNew: newItems.length,
     },
   });
 });
