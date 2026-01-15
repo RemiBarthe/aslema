@@ -137,7 +137,9 @@ export interface UserStats {
   longestStreak: number;
   lastActivityAt: string | null;
   dueReviews: number;
+  learningCount: number;
   newItems: number;
+  learnedToday: number;
   totalNewAvailable: number;
 }
 
@@ -155,16 +157,18 @@ export interface TodayItem {
   easeFactor: number;
   interval: number;
   repetitions: number;
-  type: "review" | "learning" | "new";
+  type: "review" | "learning" | "new" | "learned";
 }
 
 export interface TodaySession {
   dueReviews: TodayItem[];
   learningItems: TodayItem[];
   newItems: TodayItem[];
+  learnedTodayItems: TodayItem[];
   totalDue: number;
   totalLearning: number;
   totalNew: number;
+  totalLearnedToday: number;
 }
 
 export async function getTodaySession(

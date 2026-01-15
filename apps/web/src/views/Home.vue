@@ -18,6 +18,7 @@ import {
   FlameIcon,
   RepeatIcon,
   SparklesIcon,
+  BookOpenIcon,
 } from "lucide-vue-next";
 import Skeleton from "@/components/ui/skeleton/Skeleton.vue";
 import Button from "@/components/ui/button/Button.vue";
@@ -25,10 +26,34 @@ import Button from "@/components/ui/button/Button.vue";
 const { data: lessons, isLoading, error } = useLessons();
 const { data: stats, isLoading: statsLoading } = useUserStats();
 
-const hasItemsToReview = computed(() => {
-  if (!stats.value) return false;
-  return stats.value.dueReviews > 0 || stats.value.newItems > 0;
+const hasLearnedToday = computed(() => {
+  return (stats.value?.learnedToday ?? 0) > 0;
 });
+
+// Button text based on state
+const buttonText = computed(() => {
+  if (!stats.value) return "Chargement...";
+
+  const due = stats.value.dueReviews;
+  const learning = stats.value.learningCount;
+  const newItems = stats.value.newItems;
+
+  if (due > 0 && newItems > 0) {
+    return "Réviser et apprendre";
+  } else if (due > 0 || learning > 0) {
+    return "Continuer la révision";
+  } else if (newItems > 0) {
+    return "Apprendre de nouveaux mots";
+  } else if (hasLearnedToday.value) {
+    return "Voir les mots appris";
+  }
+  return "Voir la session";
+});
+
+// Helper for French pluralization
+function pluralize(count: number, singular: string, plural?: string): string {
+  return count <= 1 ? singular : plural ?? singular + "s";
+}
 </script>
 
 <template>
@@ -48,7 +73,10 @@ const hasItemsToReview = computed(() => {
             <template v-if="statsLoading">
               <Skeleton class="h-4 w-12" />
             </template>
-            <template v-else> {{ stats?.dueReviews ?? 0 }} mots </template>
+            <template v-else>
+              {{ stats?.dueReviews ?? 0 }}
+              {{ pluralize(stats?.dueReviews ?? 0, "mot") }}
+            </template>
           </ItemDescription>
         </ItemContent>
       </Item>
@@ -65,7 +93,30 @@ const hasItemsToReview = computed(() => {
             <template v-if="statsLoading">
               <Skeleton class="h-4 w-12" />
             </template>
-            <template v-else> {{ stats?.newItems ?? 0 }} mots </template>
+            <template v-else>
+              {{ stats?.newItems ?? 0 }}
+              {{ pluralize(stats?.newItems ?? 0, "mot") }}
+            </template>
+          </ItemDescription>
+        </ItemContent>
+      </Item>
+
+      <Item variant="muted" class="w-full">
+        <ItemHeader>
+          <BookOpenIcon />
+        </ItemHeader>
+
+        <ItemContent>
+          <ItemTitle class="text-base">En cours</ItemTitle>
+
+          <ItemDescription>
+            <template v-if="statsLoading">
+              <Skeleton class="h-4 w-12" />
+            </template>
+            <template v-else>
+              {{ stats?.learningCount ?? 0 }}
+              {{ pluralize(stats?.learningCount ?? 0, "mot") }}
+            </template>
           </ItemDescription>
         </ItemContent>
       </Item>
@@ -93,8 +144,8 @@ const hasItemsToReview = computed(() => {
     </div>
 
     <RouterLink to="/review" class="w-full flex justify-center">
-      <Button :disabled="!hasItemsToReview">
-        {{ hasItemsToReview ? "Commencer la révision" : "Rien à réviser" }}
+      <Button>
+        {{ buttonText }}
       </Button>
     </RouterLink>
   </div>

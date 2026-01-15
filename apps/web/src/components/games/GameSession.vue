@@ -3,9 +3,7 @@ import { ref, computed, watch } from "vue";
 import { useQueryClient } from "@tanstack/vue-query";
 import QcmGame from "./QcmGame.vue";
 import Progress from "@/components/ui/progress/Progress.vue";
-import Button from "@/components/ui/button/Button.vue";
 import { getRandomItems, submitAnswer } from "@/lib/api";
-import { CheckCircleIcon, XCircleIcon, TrophyIcon } from "lucide-vue-next";
 import type {
   GameItem,
   GameResult,
@@ -44,7 +42,6 @@ const results = ref<GameResult[]>([]);
 const qcmOptions = ref<string[]>([]);
 const currentDirection = ref<QcmDirection>("tunisian-to-french");
 const isLoading = ref(false);
-const isComplete = ref(false);
 
 // Current item
 const currentItem = computed((): GameItem | null => {
@@ -161,9 +158,8 @@ async function handleAnswer(result: GameResult) {
     currentIndex.value++;
     await loadOptions();
   } else {
-    isComplete.value = true;
+    // Session complete - invalidate queries and emit
     if (props.options?.trackProgress) {
-      // Invalidate both reviews and lessons to update progress
       queryClient.invalidateQueries({ queryKey: ["reviews"] });
       queryClient.invalidateQueries({ queryKey: ["lessons"] });
     }
@@ -186,7 +182,7 @@ watch(
 <template>
   <div class="flex flex-col gap-6">
     <!-- Progress bar -->
-    <div v-if="!isComplete" class="space-y-2">
+    <div class="space-y-2">
       <div class="flex justify-between text-sm text-muted-foreground">
         <span>{{ currentIndex + 1 }} / {{ items.length }}</span>
         <div class="flex gap-3">
@@ -205,7 +201,7 @@ watch(
     </div>
 
     <!-- Game component -->
-    <template v-else-if="!isComplete && currentItem">
+    <template v-else-if="currentItem">
       <QcmGame
         :key="`${currentItem.itemId}-${currentDirection}`"
         :item="currentItem"
@@ -214,45 +210,5 @@ watch(
         @answer="handleAnswer"
       />
     </template>
-
-    <!-- Complete state -->
-    <div v-else-if="isComplete" class="text-center py-8 space-y-6">
-      <TrophyIcon class="w-20 h-20 mx-auto text-yellow-500" />
-
-      <div>
-        <h2 class="text-2xl font-bold font-heading">Session terminée !</h2>
-        <p class="text-muted-foreground mt-2">
-          Tu as révisé {{ items.length }} mots
-        </p>
-      </div>
-
-      <!-- Stats -->
-      <div class="flex justify-center gap-8">
-        <div class="text-center">
-          <div class="flex items-center justify-center gap-2 text-green-600">
-            <CheckCircleIcon class="w-6 h-6" />
-            <span class="text-3xl font-bold">{{ correctCount }}</span>
-          </div>
-          <p class="text-sm text-muted-foreground">Correct</p>
-        </div>
-        <div class="text-center">
-          <div class="flex items-center justify-center gap-2 text-red-600">
-            <XCircleIcon class="w-6 h-6" />
-            <span class="text-3xl font-bold">{{ incorrectCount }}</span>
-          </div>
-          <p class="text-sm text-muted-foreground">À revoir</p>
-        </div>
-      </div>
-
-      <!-- Score percentage -->
-      <div class="py-4">
-        <div class="text-5xl font-bold font-heading">
-          {{ Math.round((correctCount / items.length) * 100) }}%
-        </div>
-        <p class="text-muted-foreground">de bonnes réponses</p>
-      </div>
-
-      <Button size="lg" @click="$router.push('/')"> Retour à l'accueil </Button>
-    </div>
   </div>
 </template>

@@ -272,6 +272,27 @@ reviews.get("/stats", async (c) => {
       )`
     );
 
+  // Count how many NEW items were started today
+  // An item counts as "started today" if it has repetitions = 1 AND was last reviewed today
+  const [{ startedToday }] = await db
+    .select({ startedToday: sql<number>`COUNT(*)` })
+    .from(reviewsTable)
+    .where(
+      and(
+        eq(reviewsTable.userId, userId),
+        eq(reviewsTable.repetitions, 1),
+        gte(reviewsTable.lastReviewedAt, startOfToday)
+      )
+    );
+
+  // Also count items currently being learned (repetitions = 0, not yet reviewed)
+  const [{ learningCount }] = await db
+    .select({ learningCount: sql<number>`COUNT(*)` })
+    .from(reviewsTable)
+    .where(
+      and(eq(reviewsTable.userId, userId), eq(reviewsTable.repetitions, 0))
+    );
+
   // Calculate streak
   let currentStreak = stats?.currentStreak ?? 0;
   if (stats?.lastActivityAt) {
@@ -292,8 +313,27 @@ reviews.get("/stats", async (c) => {
     }
   }
 
-  // For display: show how many new items for today's session (capped by daily limit)
-  const newItemsToday = Math.min(totalNewCount?.count ?? 0, dailyNewLimit);
+  // For display: show how many new items are available for today
+  // Only show new items if:
+  // 1. No items currently being learned (learningCount = 0)
+  // 2. Haven't reached daily limit (startedToday < dailyNewLimit)
+  let newItemsToday = 0;
+  if (learningCount === 0) {
+    const remainingNewToday = Math.max(0, dailyNewLimit - (startedToday ?? 0));
+    newItemsToday = Math.min(totalNewCount?.count ?? 0, remainingNewToday);
+  }
+
+  // Count items learned today (had their first successful review today)
+  const [{ learnedToday }] = await db
+    .select({ learnedToday: sql<number>`COUNT(*)` })
+    .from(reviewsTable)
+    .where(
+      and(
+        eq(reviewsTable.userId, userId),
+        gte(reviewsTable.repetitions, 1),
+        gte(reviewsTable.lastReviewedAt, startOfToday)
+      )
+    );
 
   return c.json({
     success: true,
@@ -303,7 +343,9 @@ reviews.get("/stats", async (c) => {
       longestStreak: stats?.longestStreak ?? 0,
       lastActivityAt: stats?.lastActivityAt?.toISOString() ?? null,
       dueReviews: dueCount?.count ?? 0,
+      learningCount: learningCount ?? 0,
       newItems: newItemsToday,
+      learnedToday: learnedToday ?? 0,
       totalNewAvailable: totalNewCount?.count ?? 0,
     },
   });
@@ -438,15 +480,44 @@ reviews.get("/today", async (c) => {
       .limit(remainingNewToday);
   }
 
+  // Get items learned today (successfully reviewed today, repetitions >= 1)
+  const learnedTodayItems = await db
+    .select({
+      reviewId: reviewsTable.id,
+      itemId: items.id,
+      tunisian: items.tunisian,
+      audioFile: items.audioFile,
+      translation: itemTranslations.translation,
+      easeFactor: reviewsTable.easeFactor,
+      interval: reviewsTable.interval,
+      repetitions: reviewsTable.repetitions,
+      type: sql<"learned">`'learned'`,
+    })
+    .from(reviewsTable)
+    .innerJoin(items, eq(reviewsTable.itemId, items.id))
+    .leftJoin(
+      itemTranslations,
+      sql`${itemTranslations.itemId} = ${items.id} AND ${itemTranslations.locale} = ${locale}`
+    )
+    .where(
+      and(
+        eq(reviewsTable.userId, userId),
+        gte(reviewsTable.repetitions, 1),
+        gte(reviewsTable.lastReviewedAt, startOfToday)
+      )
+    );
+
   return c.json({
     success: true,
     data: {
       dueReviews,
       learningItems,
       newItems,
+      learnedTodayItems,
       totalDue: dueReviews.length,
       totalLearning: learningItems.length,
       totalNew: newItems.length,
+      totalLearnedToday: learnedTodayItems.length,
     },
   });
 });
