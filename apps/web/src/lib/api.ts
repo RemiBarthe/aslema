@@ -2,6 +2,10 @@ import type {
   ApiResponse,
   LessonWithProgress,
   ItemWithTranslation,
+  DueReview,
+  TodaySession,
+  UserStatsResponse,
+  SM2Quality,
 } from "@aslema/shared";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -92,7 +96,7 @@ export async function startLearning(
 export async function submitAnswer(
   reviewId: number,
   data: {
-    quality: 0 | 1 | 2 | 3 | 4 | 5;
+    quality: SM2Quality;
     isCorrect: boolean;
     responseTimeMs?: number;
     userAnswer?: string;
@@ -110,17 +114,6 @@ export async function submitAnswer(
 }
 
 // Get due reviews for the current user
-export interface DueReview {
-  reviewId: number;
-  itemId: number;
-  tunisian: string;
-  audioFile: string | null;
-  translation: string;
-  easeFactor: number;
-  interval: number;
-  repetitions: number;
-}
-
 export async function getDueReviews(
   limit = 10,
   locale = "fr"
@@ -131,43 +124,11 @@ export async function getDueReviews(
 }
 
 // Get user stats
-export interface UserStats {
-  totalXp: number;
-  currentStreak: number;
-  longestStreak: number;
-  lastActivityAt: string | null;
-  dueReviews: number;
-  newItems: number;
-  learnedToday: number;
-  totalNewAvailable: number;
-}
-
-export async function getUserStats(): Promise<UserStats> {
-  return fetchApi<UserStats>(`/reviews/stats`);
+export async function getUserStats(): Promise<UserStatsResponse> {
+  return fetchApi<UserStatsResponse>(`/reviews/stats`);
 }
 
 // Get today's learning session
-export interface TodayItem {
-  reviewId: number | null;
-  itemId: number;
-  tunisian: string;
-  audioFile: string | null;
-  translation: string;
-  easeFactor: number;
-  interval: number;
-  repetitions: number;
-  type: "review" | "learning" | "new" | "learned";
-}
-
-export interface TodaySession {
-  dueReviews: TodayItem[];
-  newItems: TodayItem[];
-  learnedTodayItems: TodayItem[];
-  totalDue: number;
-  totalNew: number;
-  totalLearnedToday: number;
-}
-
 export async function getTodaySession(
   newLimit = 5,
   dueLimit = 20,

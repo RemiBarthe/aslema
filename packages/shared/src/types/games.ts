@@ -1,0 +1,43 @@
+// Game and exercise types
+
+import type { SM2Quality } from "./learning";
+
+export type GameType = "qcm" | "fill_blank" | "dictation" | "match" | "write";
+
+export type QuestionType =
+  | "tunisian_to_translation"
+  | "translation_to_tunisian"
+  | "audio_to_translation"
+  | "audio_to_tunisian";
+
+export interface Exercise {
+  id: number;
+  itemId: number;
+  gameType: GameType;
+  questionType: QuestionType;
+}
+
+export type QcmDirection = "tunisian-to-french" | "french-to-tunisian";
+
+export interface GameItem {
+  reviewId: number | null;
+  itemId: number;
+  tunisian: string;
+  translation: string;
+  audioFile?: string | null;
+  lessonId?: number | null;
+}
+
+export interface GameResult {
+  itemId: number;
+  reviewId: number | null;
+  isCorrect: boolean;
+  quality: SM2Quality;
+  responseTimeMs: number;
+  userAnswer: string;
+}
+
+export interface GameSessionOptions {
+  trackProgress?: boolean;
+  lessonId?: number;
+}

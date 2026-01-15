@@ -11,7 +11,7 @@ import type {
   GameResult,
   QcmDirection,
   GameSessionOptions,
-} from "./types";
+} from "@aslema/shared";
 
 interface SessionItem {
   reviewId: number | null;

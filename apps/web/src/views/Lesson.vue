@@ -8,7 +8,7 @@ import Button from "@/components/ui/button/Button.vue";
 import { Spinner } from "@/components/ui/spinner";
 import { ChevronLeft, Volume2 } from "lucide-vue-next";
 import { GameSession } from "@/components/games";
-import type { GameItem } from "@/components/games/types";
+import type { GameItem } from "@aslema/shared";
 
 const route = useRoute();
 const router = useRouter();

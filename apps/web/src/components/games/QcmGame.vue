@@ -2,9 +2,7 @@
 import { ref, computed } from "vue";
 import Button from "@/components/ui/button/Button.vue";
 import { CheckIcon, XIcon, Volume2Icon } from "lucide-vue-next";
-import type { GameItem, GameResult } from "./types";
-
-export type QcmDirection = "tunisian-to-french" | "french-to-tunisian";
+import type { GameItem, GameResult, QcmDirection, SM2Quality } from "@aslema/shared";
 
 const props = defineProps<{
   item: GameItem;
@@ -58,7 +56,7 @@ function selectAnswer(answer: string) {
   const correct = answer === correctAnswer.value;
 
   // Calculate SM-2 quality based on correctness and response time
-  let quality: 0 | 1 | 2 | 3 | 4 | 5;
+  let quality: SM2Quality;
   if (!correct) {
     quality = 1; // Incorrect
   } else if (responseTimeMs < 2000) {
