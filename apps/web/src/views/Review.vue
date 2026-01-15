@@ -11,7 +11,7 @@ import {
   RepeatIcon,
   CheckCircleIcon,
 } from "lucide-vue-next";
-import Skeleton from "@/components/ui/skeleton/Skeleton.vue";
+import { Spinner } from "@/components/ui/spinner";
 import Button from "@/components/ui/button/Button.vue";
 import { GameSession } from "@/components/games";
 import type { TodayItem } from "@/lib/api";
@@ -92,10 +92,8 @@ async function handleGameComplete() {
       </div>
 
       <!-- Loading -->
-      <div v-if="isLoading" class="space-y-3">
-        <Skeleton class="w-full h-16" />
-        <Skeleton class="w-full h-16" />
-        <Skeleton class="w-full h-16" />
+      <div v-if="isLoading" class="flex justify-center py-12">
+        <Spinner />
       </div>
 
       <!-- Error -->

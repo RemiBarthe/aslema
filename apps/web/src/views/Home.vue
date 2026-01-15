@@ -19,7 +19,7 @@ import {
   RepeatIcon,
   SparklesIcon,
 } from "lucide-vue-next";
-import Skeleton from "@/components/ui/skeleton/Skeleton.vue";
+import { Spinner } from "@/components/ui/spinner";
 import Button from "@/components/ui/button/Button.vue";
 
 const { data: lessons, isLoading, error } = useLessons();
@@ -69,7 +69,7 @@ function pluralize(count: number, singular: string, plural?: string): string {
 
           <ItemDescription>
             <template v-if="statsLoading">
-              <Skeleton class="h-4 w-12" />
+              <Spinner class="size-3" />
             </template>
             <template v-else>
               {{ stats?.dueReviews ?? 0 }}
@@ -89,7 +89,7 @@ function pluralize(count: number, singular: string, plural?: string): string {
 
           <ItemDescription>
             <template v-if="statsLoading">
-              <Skeleton class="h-4 w-12" />
+              <Spinner class="size-3" />
             </template>
             <template v-else>
               {{ stats?.newItems ?? 0 }}
@@ -109,7 +109,7 @@ function pluralize(count: number, singular: string, plural?: string): string {
 
           <ItemDescription>
             <template v-if="statsLoading">
-              <Skeleton class="h-4 w-12" />
+              <Spinner class="size-3" />
             </template>
             <template v-else>
               {{ stats?.currentStreak ?? 0 }} jour{{
@@ -130,8 +130,8 @@ function pluralize(count: number, singular: string, plural?: string): string {
 
   <h2 class="text-lg font-semibold mb-4 font-heading">Leçons</h2>
 
-  <div v-if="isLoading" class="space-y-3">
-    <Skeleton v-for="i in 5" :key="i" class="w-full h-20" />
+  <div v-if="isLoading" class="flex justify-center py-8">
+    <Spinner />
   </div>
 
   <Alert v-else-if="error" variant="destructive">

@@ -3,6 +3,7 @@ import { ref, computed, watch } from "vue";
 import { useQueryClient } from "@tanstack/vue-query";
 import QcmGame from "./QcmGame.vue";
 import Progress from "@/components/ui/progress/Progress.vue";
+import { Spinner } from "@/components/ui/spinner";
 import { getRandomItems, submitAnswer } from "@/lib/api";
 import type {
   GameItem,
@@ -195,9 +196,7 @@ watch(
 
     <!-- Loading state -->
     <div v-if="isLoading" class="flex justify-center py-12">
-      <div
-        class="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full"
-      />
+      <Spinner />
     </div>
 
     <!-- Game component -->

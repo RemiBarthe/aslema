@@ -4,6 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 import { getLessonItems } from "@/lib/api";
 import { useLesson, useLessonItems } from "@/composables/useQueries";
 import Button from "@/components/ui/button/Button.vue";
+import { Spinner } from "@/components/ui/spinner";
 import { ChevronLeft, Volume2 } from "lucide-vue-next";
 import { GameSession } from "@/components/games";
 import type { GameItem } from "@/components/games/types";
@@ -77,9 +78,7 @@ function goBack() {
 
     <!-- Loading -->
     <div v-if="loading" class="flex-1 flex items-center justify-center">
-      <div
-        class="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"
-      />
+      <Spinner />
     </div>
 
     <!-- Error -->
