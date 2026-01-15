@@ -15,7 +15,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import Button from "@/components/ui/button/Button.vue";
 import { GameSession } from "@/components/games";
-import type { TodayItem } from "@/lib/api";
+import type { TodayItem } from "@aslema/shared";
 
 const { data: session, isLoading, error, refetch } = useTodaySession(5, 20);
 const startLearning = useStartLearning();
