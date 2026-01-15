@@ -137,7 +137,6 @@ export interface UserStats {
   longestStreak: number;
   lastActivityAt: string | null;
   dueReviews: number;
-  learningCount: number;
   newItems: number;
   learnedToday: number;
   totalNewAvailable: number;
@@ -162,11 +161,9 @@ export interface TodayItem {
 
 export interface TodaySession {
   dueReviews: TodayItem[];
-  learningItems: TodayItem[];
   newItems: TodayItem[];
   learnedTodayItems: TodayItem[];
   totalDue: number;
-  totalLearning: number;
   totalNew: number;
   totalLearnedToday: number;
 }

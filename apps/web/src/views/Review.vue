@@ -10,7 +10,6 @@ import {
   SparklesIcon,
   RepeatIcon,
   CheckCircleIcon,
-  BookOpenIcon,
 } from "lucide-vue-next";
 import Skeleton from "@/components/ui/skeleton/Skeleton.vue";
 import Button from "@/components/ui/button/Button.vue";
@@ -26,24 +25,18 @@ const gameItems = ref<TodayItem[]>([]);
 
 // Counts
 const reviewCount = computed(() => session.value?.totalDue ?? 0);
-const learningCount = computed(() => session.value?.totalLearning ?? 0);
 const newCount = computed(() => session.value?.totalNew ?? 0);
 
 // Total items to practice
-const totalToPractice = computed(
-  () => reviewCount.value + learningCount.value + newCount.value
-);
+const totalToPractice = computed(() => reviewCount.value + newCount.value);
 
 // Button label
 const startButtonLabel = computed(() => {
-  if (
-    reviewCount.value > 0 &&
-    (newCount.value > 0 || learningCount.value > 0)
-  ) {
+  if (reviewCount.value > 0 && newCount.value > 0) {
     return `Réviser et apprendre (${totalToPractice.value})`;
   } else if (reviewCount.value > 0) {
     return `Réviser (${totalToPractice.value})`;
-  } else if (newCount.value > 0 || learningCount.value > 0) {
+  } else if (newCount.value > 0) {
     return `Apprendre (${totalToPractice.value})`;
   }
   return "Session terminée";
@@ -53,17 +46,21 @@ const startButtonLabel = computed(() => {
 async function handleStartSession() {
   if (!session.value) return;
 
+  // Filter new items that don't have a reviewId yet (truly new)
+  const trulyNewItems = session.value.newItems.filter(
+    (item: TodayItem) => item.reviewId === null
+  );
+
   // Register new items first if any
-  if (session.value.newItems.length > 0) {
-    const itemIds = session.value.newItems.map(
-      (item: TodayItem) => item.itemId
-    );
+  if (trulyNewItems.length > 0) {
+    const itemIds = trulyNewItems.map((item: TodayItem) => item.itemId);
     await startLearning.mutateAsync(itemIds);
     await refetch();
   }
 
   if (!session.value) return;
-  const items = [...session.value.dueReviews, ...session.value.learningItems];
+  // All items to practice (newItems now includes learningItems from API)
+  const items = [...session.value.dueReviews, ...session.value.newItems];
   if (items.length === 0) return;
 
   gameItems.value = items;
@@ -136,13 +133,6 @@ async function handleGameComplete() {
           :items="session?.dueReviews ?? []"
           :icon="RepeatIcon"
           color-class="bg-orange-100 dark:bg-orange-900/30 text-orange-600"
-        />
-
-        <WordList
-          title="En cours"
-          :items="session?.learningItems ?? []"
-          :icon="BookOpenIcon"
-          color-class="bg-amber-100 dark:bg-amber-900/30 text-amber-600"
         />
 
         <WordList

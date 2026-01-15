@@ -314,14 +314,11 @@ reviews.get("/stats", async (c) => {
   }
 
   // For display: show how many new items are available for today
-  // Only show new items if:
-  // 1. No items currently being learned (learningCount = 0)
-  // 2. Haven't reached daily limit (startedToday < dailyNewLimit)
-  let newItemsToday = 0;
-  if (learningCount === 0) {
-    const remainingNewToday = Math.max(0, dailyNewLimit - (startedToday ?? 0));
-    newItemsToday = Math.min(totalNewCount?.count ?? 0, remainingNewToday);
-  }
+  // Include learningItems (rep=0) + truly new items (up to daily limit)
+  const remainingNewToday = Math.max(0, dailyNewLimit - (startedToday ?? 0));
+  const trulyNewToday = Math.min(totalNewCount?.count ?? 0, remainingNewToday);
+  // learningItems count + trulyNew (only show trulyNew if no learningItems)
+  const newItemsToday = learningCount > 0 ? learningCount : trulyNewToday;
 
   // Count items learned today (had their first successful review today)
   const [{ learnedToday }] = await db
@@ -343,7 +340,6 @@ reviews.get("/stats", async (c) => {
       longestStreak: stats?.longestStreak ?? 0,
       lastActivityAt: stats?.lastActivityAt?.toISOString() ?? null,
       dueReviews: dueCount?.count ?? 0,
-      learningCount: learningCount ?? 0,
       newItems: newItemsToday,
       learnedToday: learnedToday ?? 0,
       totalNewAvailable: totalNewCount?.count ?? 0,
@@ -507,16 +503,17 @@ reviews.get("/today", async (c) => {
       )
     );
 
+  // Merge learningItems into newItems (they're all "nouveaux" from user perspective)
+  const allNewItems = [...learningItems, ...newItems];
+
   return c.json({
     success: true,
     data: {
       dueReviews,
-      learningItems,
-      newItems,
+      newItems: allNewItems,
       learnedTodayItems,
       totalDue: dueReviews.length,
-      totalLearning: learningItems.length,
-      totalNew: newItems.length,
+      totalNew: allNewItems.length,
       totalLearnedToday: learnedTodayItems.length,
     },
   });

@@ -18,7 +18,6 @@ import {
   FlameIcon,
   RepeatIcon,
   SparklesIcon,
-  BookOpenIcon,
 } from "lucide-vue-next";
 import Skeleton from "@/components/ui/skeleton/Skeleton.vue";
 import Button from "@/components/ui/button/Button.vue";
@@ -35,12 +34,11 @@ const buttonText = computed(() => {
   if (!stats.value) return "Chargement...";
 
   const due = stats.value.dueReviews;
-  const learning = stats.value.learningCount;
   const newItems = stats.value.newItems;
 
   if (due > 0 && newItems > 0) {
     return "Réviser et apprendre";
-  } else if (due > 0 || learning > 0) {
+  } else if (due > 0) {
     return "Continuer la révision";
   } else if (newItems > 0) {
     return "Apprendre de nouveaux mots";
@@ -96,26 +94,6 @@ function pluralize(count: number, singular: string, plural?: string): string {
             <template v-else>
               {{ stats?.newItems ?? 0 }}
               {{ pluralize(stats?.newItems ?? 0, "mot") }}
-            </template>
-          </ItemDescription>
-        </ItemContent>
-      </Item>
-
-      <Item variant="muted" class="w-full">
-        <ItemHeader>
-          <BookOpenIcon />
-        </ItemHeader>
-
-        <ItemContent>
-          <ItemTitle class="text-base">En cours</ItemTitle>
-
-          <ItemDescription>
-            <template v-if="statsLoading">
-              <Skeleton class="h-4 w-12" />
-            </template>
-            <template v-else>
-              {{ stats?.learningCount ?? 0 }}
-              {{ pluralize(stats?.learningCount ?? 0, "mot") }}
             </template>
           </ItemDescription>
         </ItemContent>
