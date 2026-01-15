@@ -8,13 +8,17 @@ import {
 } from "../db/schema";
 import { eq, sql, count, and, gte } from "drizzle-orm";
 import type { LessonWithProgress } from "@aslema/shared";
+import { optionalUserId } from "../middleware/auth";
 
-export const lessons = new Hono();
+type Variables = {
+  userId: string;
+};
+
+export const lessons = new Hono<{ Variables: Variables }>();
 
 // Get all lessons with progress
-lessons.get("/", async (c) => {
-  const userId =
-    c.req.header("X-User-Id") || c.req.query("userId") || "anonymous";
+lessons.get("/", optionalUserId, async (c) => {
+  const userId = c.get("userId");
 
   const result = await db
     .select({

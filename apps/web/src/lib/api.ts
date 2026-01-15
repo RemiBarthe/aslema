@@ -85,7 +85,7 @@ export async function startLearning(
 ): Promise<{ created: number }> {
   return fetchApi("/reviews/start", {
     method: "POST",
-    body: JSON.stringify({ userId: getUserId(), itemIds }),
+    body: JSON.stringify({ itemIds }),
   });
 }
 
@@ -126,7 +126,7 @@ export async function getDueReviews(
   locale = "fr"
 ): Promise<DueReview[]> {
   return fetchApi<DueReview[]>(
-    `/reviews/due?userId=${getUserId()}&locale=${locale}&limit=${limit}`
+    `/reviews/due?locale=${locale}&limit=${limit}`
   );
 }
 
@@ -143,7 +143,7 @@ export interface UserStats {
 }
 
 export async function getUserStats(): Promise<UserStats> {
-  return fetchApi<UserStats>(`/reviews/stats?userId=${getUserId()}`);
+  return fetchApi<UserStats>(`/reviews/stats`);
 }
 
 // Get today's learning session
@@ -174,7 +174,7 @@ export async function getTodaySession(
   locale = "fr"
 ): Promise<TodaySession> {
   return fetchApi<TodaySession>(
-    `/reviews/today?userId=${getUserId()}&locale=${locale}&newLimit=${newLimit}&dueLimit=${dueLimit}`
+    `/reviews/today?locale=${locale}&newLimit=${newLimit}&dueLimit=${dueLimit}`
   );
 }
 
@@ -187,13 +187,13 @@ export async function devSimulateDays(
 ): Promise<{ message: string }> {
   return fetchApi("/reviews/dev/simulate-days", {
     method: "POST",
-    body: JSON.stringify({ userId: getUserId(), days }),
+    body: JSON.stringify({ days }),
   });
 }
 
 export async function devResetProgress(): Promise<{ message: string }> {
   return fetchApi("/reviews/dev/reset", {
     method: "POST",
-    body: JSON.stringify({ userId: getUserId() }),
+    body: JSON.stringify({}),
   });
 }

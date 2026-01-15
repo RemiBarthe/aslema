@@ -9,8 +9,13 @@ import {
 } from "../db/schema";
 import { eq, sql, lte, and, gte } from "drizzle-orm";
 import type { SM2Quality, SM2Result } from "@aslema/shared";
+import { requireUserId, optionalUserId } from "../middleware/auth";
 
-export const reviews = new Hono();
+type Variables = {
+  userId: string;
+};
+
+export const reviews = new Hono<{ Variables: Variables }>();
 
 // SM-2 Algorithm implementation
 function calculateSM2(
@@ -52,8 +57,8 @@ function calculateSM2(
 }
 
 // Get due reviews for a user
-reviews.get("/due", async (c) => {
-  const userId = c.req.query("userId") || "anonymous";
+reviews.get("/due", optionalUserId, async (c) => {
+  const userId = c.get("userId");
   const locale = c.req.query("locale") || "fr";
   const limit = parseInt(c.req.query("limit") || "10");
   const now = new Date();
@@ -84,7 +89,8 @@ reviews.get("/due", async (c) => {
 });
 
 // Submit a review answer
-reviews.post("/:id/answer", async (c) => {
+reviews.post("/:id/answer", requireUserId, async (c) => {
+  const userId = c.get("userId");
   const reviewId = parseInt(c.req.param("id"));
   const body = await c.req.json<{
     quality: SM2Quality;
@@ -101,6 +107,11 @@ reviews.post("/:id/answer", async (c) => {
 
   if (!review) {
     return c.json({ success: false, error: "Review not found" }, 404);
+  }
+
+  // Verify that the review belongs to the authenticated user
+  if (review.userId !== userId) {
+    return c.json({ success: false, error: "Unauthorized" }, 403);
   }
 
   // Calculate new SM-2 values
@@ -204,9 +215,9 @@ reviews.post("/:id/answer", async (c) => {
 });
 
 // Start learning new items (create reviews)
-reviews.post("/start", async (c) => {
+reviews.post("/start", requireUserId, async (c) => {
+  const userId = c.get("userId");
   const body = await c.req.json<{
-    userId: string;
     itemIds: number[];
   }>();
 
@@ -214,7 +225,7 @@ reviews.post("/start", async (c) => {
 
   // Create reviews for new items
   const values = body.itemIds.map((itemId) => ({
-    userId: body.userId,
+    userId,
     itemId,
     easeFactor: 2.5,
     interval: 0,
@@ -228,13 +239,9 @@ reviews.post("/start", async (c) => {
 });
 
 // Get user stats
-reviews.get("/stats", async (c) => {
-  const userId = c.req.query("userId");
+reviews.get("/stats", requireUserId, async (c) => {
+  const userId = c.get("userId");
   const dailyNewLimit = parseInt(c.req.query("dailyNewLimit") || "5");
-
-  if (!userId) {
-    return c.json({ success: false, error: "userId required" }, 400);
-  }
 
   // Get or create user stats
   const [stats] = await db
@@ -348,15 +355,11 @@ reviews.get("/stats", async (c) => {
 });
 
 // Get today's learning session (due reviews + new items)
-reviews.get("/today", async (c) => {
-  const userId = c.req.query("userId");
+reviews.get("/today", requireUserId, async (c) => {
+  const userId = c.get("userId");
   const locale = c.req.query("locale") || "fr";
   const newLimit = parseInt(c.req.query("newLimit") || "5");
   const dueLimit = parseInt(c.req.query("dueLimit") || "20");
-
-  if (!userId) {
-    return c.json({ success: false, error: "userId required" }, 400);
-  }
 
   const now = new Date();
 
@@ -524,12 +527,13 @@ reviews.get("/today", async (c) => {
 // ═══════════════════════════════════════════════════════════════
 
 // Simulate passing of days (moves nextReviewAt back in time)
-reviews.post("/dev/simulate-days", async (c) => {
-  const body = await c.req.json<{ userId: string; days: number }>();
-  const { userId, days } = body;
+reviews.post("/dev/simulate-days", requireUserId, async (c) => {
+  const userId = c.get("userId");
+  const body = await c.req.json<{ days: number }>();
+  const { days } = body;
 
-  if (!userId || !days) {
-    return c.json({ success: false, error: "userId and days required" }, 400);
+  if (!days) {
+    return c.json({ success: false, error: "days required" }, 400);
   }
 
   const daysNum = Number(days);
@@ -591,13 +595,8 @@ reviews.post("/dev/simulate-days", async (c) => {
 });
 
 // Reset all learning progress for a user
-reviews.post("/dev/reset", async (c) => {
-  const body = await c.req.json<{ userId: string }>();
-  const { userId } = body;
-
-  if (!userId) {
-    return c.json({ success: false, error: "userId required" }, 400);
-  }
+reviews.post("/dev/reset", requireUserId, async (c) => {
+  const userId = c.get("userId");
 
   // Delete all reviews for this user
   await db.delete(reviewsTable).where(eq(reviewsTable.userId, userId));
