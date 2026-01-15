@@ -6,7 +6,7 @@ import {
   itemTranslations,
   reviews,
 } from "../db/schema";
-import { eq, sql, count, and, gte } from "drizzle-orm";
+import { eq, sql, and, gte } from "drizzle-orm";
 import type { LessonWithProgress } from "@aslema/shared";
 import { optionalUserId } from "../middleware/auth";
 
@@ -20,6 +20,7 @@ export const lessons = new Hono<{ Variables: Variables }>();
 lessons.get("/", optionalUserId, async (c) => {
   const userId = c.get("userId");
 
+  // Optimized query with LEFT JOINs and GROUP BY - single query, no N+1
   const result = await db
     .select({
       id: lessonsTable.id,
@@ -28,42 +29,44 @@ lessons.get("/", optionalUserId, async (c) => {
       icon: lessonsTable.icon,
       orderIndex: lessonsTable.orderIndex,
       isPremium: lessonsTable.isPremium,
+      totalItems: sql<number>`COUNT(DISTINCT ${items.id})`.as("total_items"),
+      completedItems: sql<number>`COUNT(DISTINCT CASE
+        WHEN ${reviews.userId} = ${userId}
+        AND ${reviews.repetitions} >= 2
+        THEN ${reviews.itemId}
+        END)`.as("completed_items"),
     })
     .from(lessonsTable)
+    .leftJoin(items, eq(items.lessonId, lessonsTable.id))
+    .leftJoin(
+      reviews,
+      and(eq(reviews.itemId, items.id), eq(reviews.userId, userId))
+    )
+    .groupBy(
+      lessonsTable.id,
+      lessonsTable.title,
+      lessonsTable.description,
+      lessonsTable.icon,
+      lessonsTable.orderIndex,
+      lessonsTable.isPremium
+    )
     .orderBy(lessonsTable.orderIndex);
 
-  // Get progress for each lesson
-  const lessonsWithProgress: LessonWithProgress[] = await Promise.all(
-    result.map(async (lesson) => {
-      const [{ total }] = await db
-        .select({ total: count() })
-        .from(items)
-        .where(eq(items.lessonId, lesson.id));
-
-      // Count items learned by THIS user (reviewed at least twice = after J+1 revision)
-      // repetitions >= 2 means: J+0 quiz (rep 0->1) + J+1 revision (rep 1->2)
-      const [{ completed }] = await db
-        .select({ completed: count() })
-        .from(reviews)
-        .innerJoin(items, eq(reviews.itemId, items.id))
-        .where(
-          and(
-            eq(items.lessonId, lesson.id),
-            eq(reviews.userId, userId),
-            gte(reviews.repetitions, 2)
-          )
-        );
-
-      return {
-        ...lesson,
-        isPremium: lesson.isPremium ?? false,
-        orderIndex: lesson.orderIndex ?? 0,
-        totalItems: total,
-        completedItems: completed,
-        progress: total > 0 ? Math.round((completed / total) * 100) : 0,
-      };
-    })
-  );
+  // Map to LessonWithProgress format
+  const lessonsWithProgress: LessonWithProgress[] = result.map((lesson) => ({
+    id: lesson.id,
+    title: lesson.title,
+    description: lesson.description,
+    icon: lesson.icon,
+    isPremium: lesson.isPremium ?? false,
+    orderIndex: lesson.orderIndex ?? 0,
+    totalItems: lesson.totalItems,
+    completedItems: lesson.completedItems,
+    progress:
+      lesson.totalItems > 0
+        ? Math.round((lesson.completedItems / lesson.totalItems) * 100)
+        : 0,
+  }));
 
   return c.json({ success: true, data: lessonsWithProgress });
 });
