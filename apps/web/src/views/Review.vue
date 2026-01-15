@@ -21,6 +21,7 @@ const startLearning = useStartLearning();
 
 // Game mode
 const isPlaying = ref(false);
+const isStarting = ref(false);
 const gameItems = ref<TodayItem[]>([]);
 
 // Counts
@@ -44,27 +45,33 @@ const startButtonLabel = computed(() => {
 
 // Start the session
 async function handleStartSession() {
-  if (!session.value) return;
+  if (!session.value || isStarting.value) return;
 
-  // Filter new items that don't have a reviewId yet (truly new)
-  const trulyNewItems = session.value.newItems.filter(
-    (item: TodayItem) => item.reviewId === null
-  );
+  isStarting.value = true;
 
-  // Register new items first if any
-  if (trulyNewItems.length > 0) {
-    const itemIds = trulyNewItems.map((item: TodayItem) => item.itemId);
-    await startLearning.mutateAsync(itemIds);
-    await refetch();
+  try {
+    // Filter new items that don't have a reviewId yet (truly new)
+    const trulyNewItems = session.value.newItems.filter(
+      (item: TodayItem) => item.reviewId === null
+    );
+
+    // Register new items first if any
+    if (trulyNewItems.length > 0) {
+      const itemIds = trulyNewItems.map((item: TodayItem) => item.itemId);
+      await startLearning.mutateAsync(itemIds);
+      await refetch();
+    }
+
+    if (!session.value) return;
+    // All items to practice (newItems now includes learningItems from API)
+    const items = [...session.value.dueReviews, ...session.value.newItems];
+    if (items.length === 0) return;
+
+    gameItems.value = items;
+    isPlaying.value = true;
+  } finally {
+    isStarting.value = false;
   }
-
-  if (!session.value) return;
-  // All items to practice (newItems now includes learningItems from API)
-  const items = [...session.value.dueReviews, ...session.value.newItems];
-  if (items.length === 0) return;
-
-  gameItems.value = items;
-  isPlaying.value = true;
 }
 
 // Handle game completion
@@ -110,12 +117,11 @@ async function handleGameComplete() {
           v-if="totalToPractice > 0"
           class="w-full"
           size="lg"
-          :disabled="startLearning.isPending.value"
+          :disabled="isStarting"
           @click="handleStartSession"
         >
-          {{
-            startLearning.isPending.value ? "Chargement..." : startButtonLabel
-          }}
+          <Spinner v-if="isStarting" class="size-4" />
+          {{ startButtonLabel }}
         </Button>
 
         <!-- Success message if nothing to practice -->

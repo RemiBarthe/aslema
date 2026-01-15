@@ -31,7 +31,7 @@ const hasLearnedToday = computed(() => {
 
 // Button text based on state
 const buttonText = computed(() => {
-  if (!stats.value) return "Chargement...";
+  if (!stats.value) return "Chargement";
 
   const due = stats.value.dueReviews;
   const newItems = stats.value.newItems;
@@ -123,6 +123,7 @@ function pluralize(count: number, singular: string, plural?: string): string {
 
     <RouterLink to="/review" class="w-full flex justify-center">
       <Button>
+        <Spinner v-if="statsLoading" class="size-4" />
         {{ buttonText }}
       </Button>
     </RouterLink>
