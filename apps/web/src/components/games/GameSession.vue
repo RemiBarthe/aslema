@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { useQueryClient } from "@tanstack/vue-query";
+import { toast } from "vue-sonner";
 import QcmGame from "./QcmGame.vue";
 import Progress from "@/components/ui/progress/Progress.vue";
 import { Spinner } from "@/components/ui/spinner";
@@ -125,6 +126,8 @@ async function loadOptions() {
       qcmOptions.value = shuffle(allOptions);
     }
   } catch (error) {
+    console.error("Failed to load options:", error);
+    toast.error("Erreur lors du chargement des options");
     // Fallback: just use the correct answer
     if (currentDirection.value === "tunisian-to-french") {
       qcmOptions.value = [currentItem.value.translation];
@@ -151,6 +154,7 @@ async function handleAnswer(result: GameResult) {
       });
     } catch (error) {
       console.error("Failed to submit answer:", error);
+      toast.error("Erreur lors de la sauvegarde de ta réponse");
     }
   }
 

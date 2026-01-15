@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { toast } from "vue-sonner";
 import { getLessonItems } from "@/lib/api";
 import { useLesson, useLessonItems } from "@/composables/useQueries";
 import Button from "@/components/ui/button/Button.vue";
@@ -33,18 +34,23 @@ const gameMode = ref(false);
 const gameItems = ref<GameItem[]>([]);
 
 async function startGame() {
-  // Fetch shuffled items for the quiz
-  const shuffledItems = await getLessonItems(lessonId.value, "fr", true);
-  // Convert to GameItem format (no reviewId = practice mode)
-  gameItems.value = shuffledItems.map((item) => ({
-    reviewId: null,
-    itemId: item.id,
-    tunisian: item.tunisian,
-    translation: item.translation ?? "",
-    audioFile: item.audioFile,
-    lessonId: item.lessonId,
-  }));
-  gameMode.value = true;
+  try {
+    // Fetch shuffled items for the quiz
+    const shuffledItems = await getLessonItems(lessonId.value, "fr", true);
+    // Convert to GameItem format (no reviewId = practice mode)
+    gameItems.value = shuffledItems.map((item) => ({
+      reviewId: null,
+      itemId: item.id,
+      tunisian: item.tunisian,
+      translation: item.translation ?? "",
+      audioFile: item.audioFile,
+      lessonId: item.lessonId,
+    }));
+    gameMode.value = true;
+  } catch (error) {
+    console.error("Failed to start game:", error);
+    toast.error("Erreur lors du démarrage du quiz");
+  }
 }
 
 function handleGameComplete() {

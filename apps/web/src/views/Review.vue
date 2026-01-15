@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { RouterLink } from "vue-router";
+import { toast } from "vue-sonner";
 import { useTodaySession, useStartLearning } from "@/composables/useQueries";
 import { WordList } from "@/components/ui/word-list";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -69,6 +70,9 @@ async function handleStartSession() {
 
     gameItems.value = items;
     isPlaying.value = true;
+  } catch (error) {
+    console.error("Failed to start session:", error);
+    toast.error("Erreur lors du démarrage de la session");
   } finally {
     isStarting.value = false;
   }
