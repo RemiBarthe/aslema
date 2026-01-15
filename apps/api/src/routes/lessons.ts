@@ -36,7 +36,8 @@ lessons.get("/", async (c) => {
         .from(items)
         .where(eq(items.lessonId, lesson.id));
 
-      // Count items learned by THIS user (at least 1 successful review)
+      // Count items learned by THIS user (reviewed at least twice = after J+1 revision)
+      // repetitions >= 2 means: J+0 quiz (rep 0->1) + J+1 revision (rep 1->2)
       const [{ completed }] = await db
         .select({ completed: count() })
         .from(reviews)
@@ -45,7 +46,7 @@ lessons.get("/", async (c) => {
           and(
             eq(items.lessonId, lesson.id),
             eq(reviews.userId, userId),
-            gte(reviews.repetitions, 1)
+            gte(reviews.repetitions, 2)
           )
         );
 

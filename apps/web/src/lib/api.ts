@@ -155,13 +155,15 @@ export interface TodayItem {
   easeFactor: number;
   interval: number;
   repetitions: number;
-  type: "review" | "new";
+  type: "review" | "learning" | "new";
 }
 
 export interface TodaySession {
   dueReviews: TodayItem[];
+  learningItems: TodayItem[];
   newItems: TodayItem[];
   totalDue: number;
+  totalLearning: number;
   totalNew: number;
 }
 
@@ -173,4 +175,24 @@ export async function getTodaySession(
   return fetchApi<TodaySession>(
     `/reviews/today?userId=${getUserId()}&locale=${locale}&newLimit=${newLimit}&dueLimit=${dueLimit}`
   );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DEV TOOLS
+// ═══════════════════════════════════════════════════════════════
+
+export async function devSimulateDays(
+  days: number
+): Promise<{ message: string }> {
+  return fetchApi("/reviews/dev/simulate-days", {
+    method: "POST",
+    body: JSON.stringify({ userId: getUserId(), days }),
+  });
+}
+
+export async function devResetProgress(): Promise<{ message: string }> {
+  return fetchApi("/reviews/dev/reset", {
+    method: "POST",
+    body: JSON.stringify({ userId: getUserId() }),
+  });
 }

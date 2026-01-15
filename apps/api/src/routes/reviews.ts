@@ -350,40 +350,197 @@ reviews.get("/today", async (c) => {
     )
     .limit(dueLimit);
 
-  // Get new items (not yet learned by this user)
-  const newItems = await db
+  // Get items currently being learned (repetitions = 0, already started)
+  const learningItems = await db
     .select({
-      reviewId: sql<null>`NULL`,
+      reviewId: reviewsTable.id,
       itemId: items.id,
       tunisian: items.tunisian,
       audioFile: items.audioFile,
       translation: itemTranslations.translation,
-      easeFactor: sql<number>`2.5`,
-      interval: sql<number>`0`,
-      repetitions: sql<number>`0`,
-      type: sql<"new">`'new'`,
+      easeFactor: reviewsTable.easeFactor,
+      interval: reviewsTable.interval,
+      repetitions: reviewsTable.repetitions,
+      type: sql<"learning">`'learning'`,
     })
-    .from(items)
+    .from(reviewsTable)
+    .innerJoin(items, eq(reviewsTable.itemId, items.id))
     .leftJoin(
       itemTranslations,
       sql`${itemTranslations.itemId} = ${items.id} AND ${itemTranslations.locale} = ${locale}`
     )
     .where(
-      sql`${items.id} NOT IN (
-        SELECT ${reviewsTable.itemId} FROM ${reviewsTable} 
-        WHERE ${reviewsTable.userId} = ${userId}
-      )`
-    )
-    .orderBy(items.orderIndex)
-    .limit(newLimit);
+      and(eq(reviewsTable.userId, userId), eq(reviewsTable.repetitions, 0))
+    );
+
+  // Only show new items if:
+  // 1. User has no items currently being learned (repetitions = 0)
+  // 2. User hasn't reached daily new item limit
+  type NewItem = {
+    reviewId: number | null;
+    itemId: number;
+    tunisian: string;
+    audioFile: string | null;
+    translation: string | null;
+    easeFactor: number | null;
+    interval: number | null;
+    repetitions: number | null;
+    type: "new" | "learning" | "review";
+  };
+
+  let newItems: NewItem[] = [];
+
+  // Count how many NEW items were started today
+  // An item counts as "started today" if it has repetitions = 1 AND was last reviewed today
+  // (meaning it went from new -> first quiz today)
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+
+  const [{ startedToday }] = await db
+    .select({ startedToday: sql<number>`COUNT(*)` })
+    .from(reviewsTable)
+    .where(
+      and(
+        eq(reviewsTable.userId, userId),
+        eq(reviewsTable.repetitions, 1),
+        gte(reviewsTable.lastReviewedAt, startOfToday)
+      )
+    );
+
+  const remainingNewToday = Math.max(0, newLimit - (startedToday ?? 0));
+
+  // Only show new items if user has finished learning current batch AND hasn't hit daily limit
+  if (learningItems.length === 0 && remainingNewToday > 0) {
+    newItems = await db
+      .select({
+        reviewId: sql<number | null>`NULL`,
+        itemId: items.id,
+        tunisian: items.tunisian,
+        audioFile: items.audioFile,
+        translation: itemTranslations.translation,
+        easeFactor: sql<number>`2.5`,
+        interval: sql<number>`0`,
+        repetitions: sql<number>`0`,
+        type: sql<"new">`'new'`,
+      })
+      .from(items)
+      .leftJoin(
+        itemTranslations,
+        sql`${itemTranslations.itemId} = ${items.id} AND ${itemTranslations.locale} = ${locale}`
+      )
+      .where(
+        sql`${items.id} NOT IN (
+          SELECT ${reviewsTable.itemId} FROM ${reviewsTable} 
+          WHERE ${reviewsTable.userId} = ${userId}
+        )`
+      )
+      .orderBy(items.orderIndex)
+      .limit(remainingNewToday);
+  }
 
   return c.json({
     success: true,
     data: {
       dueReviews,
+      learningItems,
       newItems,
       totalDue: dueReviews.length,
+      totalLearning: learningItems.length,
       totalNew: newItems.length,
     },
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// DEV TOOLS (for testing)
+// ═══════════════════════════════════════════════════════════════
+
+// Simulate passing of days (moves nextReviewAt back in time)
+reviews.post("/dev/simulate-days", async (c) => {
+  const body = await c.req.json<{ userId: string; days: number }>();
+  const { userId, days } = body;
+
+  if (!userId || !days) {
+    return c.json({ success: false, error: "userId and days required" }, 400);
+  }
+
+  const daysNum = Number(days);
+  const msToSubtract = daysNum * 24 * 60 * 60 * 1000;
+
+  // Get all reviews for this user and update them
+  const userReviews = await db
+    .select()
+    .from(reviewsTable)
+    .where(eq(reviewsTable.userId, userId));
+
+  for (const review of userReviews) {
+    const updates: {
+      nextReviewAt?: Date;
+      lastReviewedAt?: Date;
+      createdAt?: Date;
+    } = {};
+
+    if (review.nextReviewAt) {
+      updates.nextReviewAt = new Date(
+        review.nextReviewAt.getTime() - msToSubtract
+      );
+    }
+    if (review.lastReviewedAt) {
+      updates.lastReviewedAt = new Date(
+        review.lastReviewedAt.getTime() - msToSubtract
+      );
+    }
+    if (review.createdAt) {
+      updates.createdAt = new Date(review.createdAt.getTime() - msToSubtract);
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await db
+        .update(reviewsTable)
+        .set(updates)
+        .where(eq(reviewsTable.id, review.id));
+    }
+  }
+
+  // Also update lastActivityAt to simulate time passing
+  const [stats] = await db
+    .select()
+    .from(userStats)
+    .where(eq(userStats.userId, userId));
+
+  if (stats?.lastActivityAt) {
+    const newDate = new Date(stats.lastActivityAt.getTime() - msToSubtract);
+    await db
+      .update(userStats)
+      .set({ lastActivityAt: newDate })
+      .where(eq(userStats.userId, userId));
+  }
+
+  return c.json({
+    success: true,
+    data: { message: `Simulated ${days} day(s) passing` },
+  });
+});
+
+// Reset all learning progress for a user
+reviews.post("/dev/reset", async (c) => {
+  const body = await c.req.json<{ userId: string }>();
+  const { userId } = body;
+
+  if (!userId) {
+    return c.json({ success: false, error: "userId required" }, 400);
+  }
+
+  // Delete all reviews for this user
+  await db.delete(reviewsTable).where(eq(reviewsTable.userId, userId));
+
+  // Delete all attempts for this user's reviews (already cascade deleted)
+
+  // Reset user stats
+  await db.delete(userStats).where(eq(userStats.userId, userId));
+
+  return c.json({
+    success: true,
+    data: { message: "All learning progress reset" },
   });
 });
