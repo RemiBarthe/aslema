@@ -427,7 +427,10 @@ reviews.get("/today", requireUserId, async (c) => {
   );
 
   // Get truly new items (never seen before) up to remaining daily limit
-  const remainingSlots = Math.max(0, remainingNewToday - newItemsBeingLearned.length);
+  // IMPORTANT: Only add new items if there are no items being learned AND we haven't hit today's limit
+  const remainingSlots = newItemsBeingLearned.length > 0
+    ? 0
+    : Math.max(0, remainingNewToday);
   const trulyNewItems =
     remainingSlots > 0
       ? await db
