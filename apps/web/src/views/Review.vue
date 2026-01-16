@@ -88,22 +88,35 @@ async function handleGameComplete() {
 </script>
 
 <template>
-  <div class="max-w-2xl mx-auto">
-    <!-- Game Mode -->
-    <template v-if="isPlaying">
-      <GameSession :items="gameItems" @complete="handleGameComplete" />
-    </template>
+  <template v-if="isPlaying">
+    <GameSession :items="gameItems" @complete="handleGameComplete" />
+  </template>
 
-    <!-- List Mode -->
-    <template v-else>
-      <!-- Header -->
-      <div class="flex items-center gap-4 mb-6">
+  <template v-else>
+    <div
+      class="sticky top-16 z-10 bg-background flex items-center justify-between py-1"
+    >
+      <div class="flex items-center gap-2">
         <RouterLink to="/" class="text-muted-foreground hover:text-foreground">
-          <ArrowLeftIcon class="w-5 h-5" />
+          <Button variant="ghost" size="icon-sm">
+            <ArrowLeftIcon />
+          </Button>
         </RouterLink>
         <h1 class="text-2xl font-bold font-heading">Session du jour</h1>
       </div>
 
+      <Button
+        v-if="totalToPractice > 0"
+        size="lg"
+        :disabled="isStarting"
+        @click="handleStartSession"
+      >
+        <Spinner v-if="isStarting" class="size-4" />
+        {{ startButtonLabel }}
+      </Button>
+    </div>
+
+    <div class="mt-8">
       <!-- Loading -->
       <div v-if="isLoading" class="flex justify-center py-12">
         <Spinner />
@@ -118,26 +131,17 @@ async function handleGameComplete() {
 
       <!-- Content -->
       <div v-else class="space-y-6">
-        <!-- Start button (only if items to practice) -->
-        <Button
-          v-if="totalToPractice > 0"
-          class="w-full"
-          size="lg"
-          :disabled="isStarting"
-          @click="handleStartSession"
-        >
-          <Spinner v-if="isStarting" class="size-4" />
-          {{ startButtonLabel }}
-        </Button>
-
         <!-- Success message if nothing to practice -->
         <div v-if="totalToPractice === 0" class="text-center py-8 space-y-4">
           <CheckCircleIcon class="w-16 h-16 mx-auto text-green-500" />
-          <h2 class="text-xl font-semibold">Bravo ! 🎉</h2>
-          <p class="text-muted-foreground">Tu as terminé ta session du jour.</p>
+          <div>
+            <h2 class="text-xl font-semibold">Bravo !</h2>
+            <p class="text-muted-foreground">
+              Tu as terminé ta session du jour.
+            </p>
+          </div>
         </div>
 
-        <!-- Word lists -->
         <WordList
           title="À réviser"
           :items="session?.dueReviews ?? []"
@@ -159,11 +163,10 @@ async function handleGameComplete() {
           color-class="bg-green-100 dark:bg-green-900/30 text-green-600"
         />
 
-        <!-- Back button -->
         <RouterLink v-if="totalToPractice === 0" to="/" class="block">
           <Button variant="outline" class="w-full">Retour à l'accueil</Button>
         </RouterLink>
       </div>
-    </template>
-  </div>
+    </div>
+  </template>
 </template>
