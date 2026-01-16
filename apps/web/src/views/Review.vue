@@ -26,8 +26,8 @@ const isStarting = ref(false);
 const gameItems = ref<TodayItem[]>([]);
 
 // Counts
-const reviewCount = computed(() => session.value?.totalDue ?? 0);
-const newCount = computed(() => session.value?.totalNew ?? 0);
+const reviewCount = computed(() => session.value?.dueReviews.length ?? 0);
+const newCount = computed(() => session.value?.newItems.length ?? 0);
 
 // Total items to practice
 const totalToPractice = computed(() => reviewCount.value + newCount.value);

@@ -256,50 +256,6 @@ reviews.get("/stats", requireUserId, async (c) => {
     now.getDate()
   );
 
-  // Count due reviews (items user has learned at least once and are due)
-  const [dueCount] = await db
-    .select({ count: sql<number>`COUNT(*)` })
-    .from(reviewsTable)
-    .where(
-      and(
-        eq(reviewsTable.userId, userId),
-        gte(reviewsTable.repetitions, 1),
-        lte(reviewsTable.nextReviewAt, now)
-      )
-    );
-
-  // Count total new items available (items not yet in reviews for this user)
-  const [totalNewCount] = await db
-    .select({ count: sql<number>`COUNT(*)` })
-    .from(items)
-    .where(
-      sql`${items.id} NOT IN (
-        SELECT ${reviewsTable.itemId} FROM ${reviewsTable} 
-        WHERE ${reviewsTable.userId} = ${userId}
-      )`
-    );
-
-  // Count how many NEW items were started today
-  // An item counts as "started today" if it has repetitions = 1 AND was last reviewed today
-  const [{ startedToday }] = await db
-    .select({ startedToday: sql<number>`COUNT(*)` })
-    .from(reviewsTable)
-    .where(
-      and(
-        eq(reviewsTable.userId, userId),
-        eq(reviewsTable.repetitions, 1),
-        gte(reviewsTable.lastReviewedAt, startOfToday)
-      )
-    );
-
-  // Also count items currently being learned (repetitions = 0, not yet reviewed)
-  const [{ learningCount }] = await db
-    .select({ learningCount: sql<number>`COUNT(*)` })
-    .from(reviewsTable)
-    .where(
-      and(eq(reviewsTable.userId, userId), eq(reviewsTable.repetitions, 0))
-    );
-
   // Calculate streak
   let currentStreak = stats?.currentStreak ?? 0;
   if (stats?.lastActivityAt) {
@@ -320,16 +276,57 @@ reviews.get("/stats", requireUserId, async (c) => {
     }
   }
 
-  // For display: show how many new items are available for today
-  // Include learningItems (rep=0) + truly new items (up to daily limit)
-  const remainingNewToday = Math.max(0, dailyNewLimit - (startedToday ?? 0));
-  const trulyNewToday = Math.min(totalNewCount?.count ?? 0, remainingNewToday);
-  // learningItems count + trulyNew (only show trulyNew if no learningItems)
-  const newItemsToday = learningCount > 0 ? learningCount : trulyNewToday;
+  // Count due reviews (repetitions >= 1 AND nextReviewAt <= now)
+  const [dueResult] = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(reviewsTable)
+    .where(
+      and(
+        eq(reviewsTable.userId, userId),
+        gte(reviewsTable.repetitions, 1),
+        lte(reviewsTable.nextReviewAt, now)
+      )
+    );
+
+  // Count new items being learned (repetitions = 0, already in reviews table)
+  const [newItemsBeingLearnedResult] = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(reviewsTable)
+    .where(
+      and(eq(reviewsTable.userId, userId), eq(reviewsTable.repetitions, 0))
+    );
+
+  // Count how many items were started today (created in reviews table today)
+  const [startedTodayResult] = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(reviewsTable)
+    .where(
+      and(eq(reviewsTable.userId, userId), gte(reviewsTable.createdAt, startOfToday))
+    );
+
+  // Calculate how many truly new items can be added today
+  const remainingNewToday = Math.max(0, dailyNewLimit - (startedTodayResult?.count ?? 0));
+  const remainingSlots = Math.max(0, remainingNewToday - (newItemsBeingLearnedResult?.count ?? 0));
+
+  // Count truly new items available (never started)
+  const [totalNewResult] = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(items)
+    .where(
+      sql`${items.id} NOT IN (
+        SELECT ${reviewsTable.itemId} FROM ${reviewsTable}
+        WHERE ${reviewsTable.userId} = ${userId}
+      )`
+    );
+
+  const trulyNewAvailable = Math.min(totalNewResult?.count ?? 0, remainingSlots);
+
+  // Total new items in today's session = items being learned + truly new available
+  const newItemsCount = (newItemsBeingLearnedResult?.count ?? 0) + trulyNewAvailable;
 
   // Count items learned today (had their first successful review today)
-  const [{ learnedToday }] = await db
-    .select({ learnedToday: sql<number>`COUNT(*)` })
+  const [learnedTodayResult] = await db
+    .select({ count: sql<number>`COUNT(*)` })
     .from(reviewsTable)
     .where(
       and(
@@ -346,10 +343,10 @@ reviews.get("/stats", requireUserId, async (c) => {
       currentStreak,
       longestStreak: stats?.longestStreak ?? 0,
       lastActivityAt: stats?.lastActivityAt?.toISOString() ?? null,
-      dueReviews: dueCount?.count ?? 0,
-      newItems: newItemsToday,
-      learnedToday: learnedToday ?? 0,
-      totalNewAvailable: totalNewCount?.count ?? 0,
+      dueReviews: dueResult?.count ?? 0,
+      newItems: newItemsCount,
+      learnedToday: learnedTodayResult?.count ?? 0,
+      totalNewAvailable: totalNewResult?.count ?? 0,
     },
   });
 });
@@ -362,8 +359,10 @@ reviews.get("/today", requireUserId, async (c) => {
   const dueLimit = parseInt(c.req.query("dueLimit") || "20");
 
   const now = new Date();
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
 
-  // Get due reviews (only items that have been learned at least once)
+  // Get items to review (repetitions >= 1 AND nextReviewAt <= now)
   const dueReviews = await db
     .select({
       reviewId: reviewsTable.id,
@@ -391,8 +390,8 @@ reviews.get("/today", requireUserId, async (c) => {
     )
     .limit(dueLimit);
 
-  // Get items currently being learned (repetitions = 0, already started)
-  const learningItems = await db
+  // Get new items being learned (repetitions = 0, already in reviews table)
+  const newItemsBeingLearned = await db
     .select({
       reviewId: reviewsTable.id,
       itemId: items.id,
@@ -402,7 +401,7 @@ reviews.get("/today", requireUserId, async (c) => {
       easeFactor: reviewsTable.easeFactor,
       interval: reviewsTable.interval,
       repetitions: reviewsTable.repetitions,
-      type: sql<"learning">`'learning'`,
+      type: sql<"new">`'new'`,
     })
     .from(reviewsTable)
     .innerJoin(items, eq(reviewsTable.itemId, items.id))
@@ -414,72 +413,54 @@ reviews.get("/today", requireUserId, async (c) => {
       and(eq(reviewsTable.userId, userId), eq(reviewsTable.repetitions, 0))
     );
 
-  // Only show new items if:
-  // 1. User has no items currently being learned (repetitions = 0)
-  // 2. User hasn't reached daily new item limit
-  type NewItem = {
-    reviewId: number | null;
-    itemId: number;
-    tunisian: string;
-    audioFile: string | null;
-    translation: string | null;
-    easeFactor: number | null;
-    interval: number | null;
-    repetitions: number | null;
-    type: "new" | "learning" | "review";
-  };
-
-  let newItems: NewItem[] = [];
-
-  // Count how many NEW items were started today
-  // An item counts as "started today" if it has repetitions = 1 AND was last reviewed today
-  // (meaning it went from new -> first quiz today)
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-
+  // Count how many items were created today (started learning today)
   const [{ startedToday }] = await db
     .select({ startedToday: sql<number>`COUNT(*)` })
     .from(reviewsTable)
     .where(
-      and(
-        eq(reviewsTable.userId, userId),
-        eq(reviewsTable.repetitions, 1),
-        gte(reviewsTable.lastReviewedAt, startOfToday)
-      )
+      and(eq(reviewsTable.userId, userId), gte(reviewsTable.createdAt, startOfToday))
     );
 
-  const remainingNewToday = Math.max(0, newLimit - (startedToday ?? 0));
+  const remainingNewToday = Math.max(
+    0,
+    newLimit - (startedToday ?? 0)
+  );
 
-  // Only show new items if user has finished learning current batch AND hasn't hit daily limit
-  if (learningItems.length === 0 && remainingNewToday > 0) {
-    newItems = await db
-      .select({
-        reviewId: sql<number | null>`NULL`,
-        itemId: items.id,
-        tunisian: items.tunisian,
-        audioFile: items.audioFile,
-        translation: itemTranslations.translation,
-        easeFactor: sql<number>`2.5`,
-        interval: sql<number>`0`,
-        repetitions: sql<number>`0`,
-        type: sql<"new">`'new'`,
-      })
-      .from(items)
-      .leftJoin(
-        itemTranslations,
-        sql`${itemTranslations.itemId} = ${items.id} AND ${itemTranslations.locale} = ${locale}`
-      )
-      .where(
-        sql`${items.id} NOT IN (
-          SELECT ${reviewsTable.itemId} FROM ${reviewsTable} 
-          WHERE ${reviewsTable.userId} = ${userId}
-        )`
-      )
-      .orderBy(items.orderIndex)
-      .limit(remainingNewToday);
-  }
+  // Get truly new items (never seen before) up to remaining daily limit
+  const remainingSlots = Math.max(0, remainingNewToday - newItemsBeingLearned.length);
+  const trulyNewItems =
+    remainingSlots > 0
+      ? await db
+          .select({
+            reviewId: sql<number | null>`NULL`,
+            itemId: items.id,
+            tunisian: items.tunisian,
+            audioFile: items.audioFile,
+            translation: itemTranslations.translation,
+            easeFactor: sql<number>`2.5`,
+            interval: sql<number>`0`,
+            repetitions: sql<number>`0`,
+            type: sql<"new">`'new'`,
+          })
+          .from(items)
+          .leftJoin(
+            itemTranslations,
+            sql`${itemTranslations.itemId} = ${items.id} AND ${itemTranslations.locale} = ${locale}`
+          )
+          .where(
+            sql`${items.id} NOT IN (
+            SELECT ${reviewsTable.itemId} FROM ${reviewsTable}
+            WHERE ${reviewsTable.userId} = ${userId}
+          )`
+          )
+          .orderBy(items.orderIndex)
+          .limit(remainingSlots)
+      : [];
 
-  // Get items learned today (successfully reviewed today, repetitions >= 1)
+  // Combine new items being learned + truly new items
+  const newItems = [...newItemsBeingLearned, ...trulyNewItems];
+
+  // Get items learned today (reviewed today, repetitions >= 1)
   const learnedTodayItems = await db
     .select({
       reviewId: reviewsTable.id,
@@ -506,18 +487,12 @@ reviews.get("/today", requireUserId, async (c) => {
       )
     );
 
-  // Merge learningItems into newItems (they're all "nouveaux" from user perspective)
-  const allNewItems = [...learningItems, ...newItems];
-
   return c.json({
     success: true,
     data: {
       dueReviews,
-      newItems: allNewItems,
+      newItems,
       learnedTodayItems,
-      totalDue: dueReviews.length,
-      totalNew: allNewItems.length,
-      totalLearnedToday: learnedTodayItems.length,
     },
   });
 });

@@ -152,6 +152,10 @@ async function handleAnswer(result: GameResult) {
         responseTimeMs: result.responseTimeMs,
         userAnswer: result.userAnswer,
       });
+
+      // Invalidate queries after each answer to keep stats up to date
+      queryClient.invalidateQueries({ queryKey: ["reviews"] });
+      queryClient.invalidateQueries({ queryKey: ["lessons"] });
     } catch (error) {
       console.error("Failed to submit answer:", error);
       toast.error("Erreur lors de la sauvegarde de ta réponse");
@@ -162,14 +166,7 @@ async function handleAnswer(result: GameResult) {
   if (currentIndex.value < props.items.length - 1) {
     currentIndex.value++;
     await loadOptions();
-  } else {
-    // Session complete - invalidate queries and emit
-    if (props.options?.trackProgress) {
-      queryClient.invalidateQueries({ queryKey: ["reviews"] });
-      queryClient.invalidateQueries({ queryKey: ["lessons"] });
-    }
-    emit("complete", results.value);
-  }
+  } else emit("complete", results.value);
 }
 
 // Start the session

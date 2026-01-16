@@ -27,7 +27,4 @@ export interface TodaySession {
   dueReviews: TodayItem[];
   newItems: TodayItem[];
   learnedTodayItems: TodayItem[];
-  totalDue: number;
-  totalNew: number;
-  totalLearnedToday: number;
 }
