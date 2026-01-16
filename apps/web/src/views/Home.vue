@@ -121,12 +121,14 @@ function pluralize(count: number, singular: string, plural?: string): string {
       </Item>
     </div>
 
-    <RouterLink to="/review" class="w-full flex justify-center">
-      <Button>
-        <Spinner v-if="statsLoading" class="size-4" />
-        {{ buttonText }}
-      </Button>
-    </RouterLink>
+    <div class="w-full flex justify-center">
+      <RouterLink to="/review">
+        <Button>
+          <Spinner v-if="statsLoading" class="size-4" />
+          {{ buttonText }}
+        </Button>
+      </RouterLink>
+    </div>
   </div>
 
   <h2 class="text-lg font-semibold mb-4 font-heading">Leçons</h2>
