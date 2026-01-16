@@ -68,7 +68,9 @@ async function handleStartSession() {
     const items = [...session.value.dueReviews, ...session.value.newItems];
     if (items.length === 0) return;
 
-    gameItems.value = items;
+    // Shuffle items to make the order unpredictable
+    const shuffledItems = items.sort(() => Math.random() - 0.5);
+    gameItems.value = shuffledItems;
     isPlaying.value = true;
   } catch (error) {
     console.error("Failed to start session:", error);

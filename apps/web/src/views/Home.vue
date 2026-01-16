@@ -21,6 +21,12 @@ import {
 } from "lucide-vue-next";
 import { Spinner } from "@/components/ui/spinner";
 import Button from "@/components/ui/button/Button.vue";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const { data: lessons, isLoading, error } = useLessons();
 const { data: stats, isLoading: statsLoading } = useUserStats();
@@ -165,9 +171,18 @@ function pluralize(count: number, singular: string, plural?: string): string {
         </ItemContent>
 
         <ItemActions>
-          <div class="text-sm text-muted-foreground">
-            {{ lesson.completedItems }}/{{ lesson.totalItems }}
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <div class="text-sm text-muted-foreground">
+                  {{ lesson.completedItems }}/{{ lesson.totalItems }}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p class="text-sm">Mots révisés avec succès</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </ItemActions>
       </RouterLink>
     </Item>
