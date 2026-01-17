@@ -30,7 +30,7 @@ const props = withDefaults(
   }>(),
   {
     options: () => ({ trackProgress: true }),
-  }
+  },
 );
 
 const emit = defineEmits<{
@@ -67,10 +67,10 @@ const progress = computed(() => {
 
 // Stats
 const correctCount = computed(
-  () => results.value.filter((r) => r.isCorrect).length
+  () => results.value.filter((r) => r.isCorrect).length,
 );
 const incorrectCount = computed(
-  () => results.value.filter((r) => !r.isCorrect).length
+  () => results.value.filter((r) => !r.isCorrect).length,
 );
 
 // Pick a random direction
@@ -178,7 +178,7 @@ watch(
       loadOptions();
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 </script>
 

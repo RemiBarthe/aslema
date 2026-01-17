@@ -10,6 +10,7 @@ import {
 import { eq, sql, lte, and, gte } from "drizzle-orm";
 import type { SM2Quality, SM2Result } from "@aslema/shared";
 import { requireUserId, optionalUserId } from "../middleware/auth";
+import { getStartOfDay } from "../utils/date";
 
 type Variables = {
   userId: string;
@@ -146,11 +147,7 @@ reviews.post("/:id/answer", requireUserId, async (c) => {
   if (body.isCorrect) {
     const xpGain = body.quality >= 4 ? 15 : 10;
     const now = new Date();
-    const startOfToday = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate()
-    );
+    const startOfToday = getStartOfDay(now);
 
     // Get current stats to calculate streak
     const [currentStats] = await db
@@ -250,11 +247,7 @@ reviews.get("/stats", requireUserId, async (c) => {
     .where(eq(userStats.userId, userId));
 
   const now = new Date();
-  const startOfToday = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate()
-  );
+  const startOfToday = getStartOfDay(now);
 
   // Calculate streak
   let currentStreak = stats?.currentStreak ?? 0;
@@ -359,8 +352,7 @@ reviews.get("/today", requireUserId, async (c) => {
   const dueLimit = parseInt(c.req.query("dueLimit") || "20");
 
   const now = new Date();
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
+  const startOfToday = getStartOfDay(now);
 
   // Get items to review (repetitions >= 1 AND nextReviewAt <= now)
   const dueReviews = await db
