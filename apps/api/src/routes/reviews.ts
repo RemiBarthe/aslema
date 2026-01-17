@@ -10,7 +10,7 @@ import {
 import { eq, sql, lte, and, gte } from "drizzle-orm";
 import type { SM2Quality, SM2Result } from "@aslema/shared";
 import { requireUserId, optionalUserId } from "../middleware/auth";
-import { getStartOfDay } from "../utils/date";
+import { getStartOfDay, calculateNewStreak, getCurrentStreak } from "../utils/date";
 
 type Variables = {
   userId: string;
@@ -147,7 +147,6 @@ reviews.post("/:id/answer", requireUserId, async (c) => {
   if (body.isCorrect) {
     const xpGain = body.quality >= 4 ? 15 : 10;
     const now = new Date();
-    const startOfToday = getStartOfDay(now);
 
     // Get current stats to calculate streak
     const [currentStats] = await db
@@ -155,32 +154,11 @@ reviews.post("/:id/answer", requireUserId, async (c) => {
       .from(userStats)
       .where(eq(userStats.userId, review.userId));
 
-    let newStreak = 1;
-    let newLongestStreak = 1;
-
-    if (currentStats?.lastActivityAt) {
-      const lastActivity = new Date(currentStats.lastActivityAt);
-      const startOfLastActivity = new Date(
-        lastActivity.getFullYear(),
-        lastActivity.getMonth(),
-        lastActivity.getDate()
-      );
-      const daysDiff = Math.floor(
-        (startOfToday.getTime() - startOfLastActivity.getTime()) /
-          (1000 * 60 * 60 * 24)
-      );
-
-      if (daysDiff === 0) {
-        // Same day - keep current streak
-        newStreak = currentStats.currentStreak ?? 1;
-      } else if (daysDiff === 1) {
-        // Consecutive day - increment streak
-        newStreak = (currentStats.currentStreak ?? 0) + 1;
-      }
-      // else daysDiff > 1: streak resets to 1
-
-      newLongestStreak = Math.max(newStreak, currentStats.longestStreak ?? 0);
-    }
+    const newStreak = calculateNewStreak(
+      currentStats?.lastActivityAt ?? null,
+      currentStats?.currentStreak ?? 0
+    );
+    const newLongestStreak = Math.max(newStreak, currentStats?.longestStreak ?? 0);
 
     await db
       .insert(userStats)
@@ -249,25 +227,11 @@ reviews.get("/stats", requireUserId, async (c) => {
   const now = new Date();
   const startOfToday = getStartOfDay(now);
 
-  // Calculate streak
-  let currentStreak = stats?.currentStreak ?? 0;
-  if (stats?.lastActivityAt) {
-    const lastActivity = new Date(stats.lastActivityAt);
-    const startOfLastActivity = new Date(
-      lastActivity.getFullYear(),
-      lastActivity.getMonth(),
-      lastActivity.getDate()
-    );
-    const daysDiff = Math.floor(
-      (startOfToday.getTime() - startOfLastActivity.getTime()) /
-        (1000 * 60 * 60 * 24)
-    );
-
-    if (daysDiff > 1) {
-      // Streak broken
-      currentStreak = 0;
-    }
-  }
+  // Calculate current streak (0 if broken)
+  const currentStreak = getCurrentStreak(
+    stats?.lastActivityAt ?? null,
+    stats?.currentStreak ?? 0
+  );
 
   // Count due reviews (repetitions >= 1 AND nextReviewAt <= now)
   const [dueResult] = await db
