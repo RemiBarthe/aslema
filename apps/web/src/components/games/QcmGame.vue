@@ -141,7 +141,7 @@ function getButtonClass(option: string) {
 
     <!-- Feedback -->
     <div
-      v-if="showResult || true"
+      v-if="showResult"
       class="text-center py-4"
       :class="isCorrect ? 'text-green-600' : 'text-red-600'"
     >
