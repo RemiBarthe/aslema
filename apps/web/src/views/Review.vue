@@ -50,9 +50,13 @@ const startButtonLabel = computed(() => {
     </div>
 
     <RouterLink v-if="totalToPractice > 0" to="/review/session">
-      <Button size="lg">
+      <Button>
         {{ startButtonLabel }}
       </Button>
+    </RouterLink>
+
+    <RouterLink v-else to="/">
+      <Button>Retour à l'accueil</Button>
     </RouterLink>
   </div>
 
@@ -76,9 +80,7 @@ const startButtonLabel = computed(() => {
         <CheckCircleIcon class="w-16 h-16 mx-auto text-green-500" />
         <div>
           <h2 class="text-xl font-semibold">Bravo !</h2>
-          <p class="text-muted-foreground">
-            Tu as terminé ta session du jour.
-          </p>
+          <p class="text-muted-foreground">Tu as terminé ta session du jour.</p>
         </div>
       </div>
 
@@ -102,10 +104,6 @@ const startButtonLabel = computed(() => {
         :icon="CheckCircleIcon"
         color-class="bg-green-100 dark:bg-green-900/30 text-green-600"
       />
-
-      <RouterLink v-if="totalToPractice === 0" to="/" class="block">
-        <Button variant="outline" class="w-full">Retour à l'accueil</Button>
-      </RouterLink>
     </div>
   </div>
 </template>
