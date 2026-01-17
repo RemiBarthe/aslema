@@ -1,14 +1,10 @@
 import { Hono } from "hono";
 import { db } from "../db";
-import {
-  lessons as lessonsTable,
-  items,
-  itemTranslations,
-  reviews,
-} from "../db/schema";
+import { lessons as lessonsTable, items, reviews } from "../db/schema";
 import { eq, sql, and, gte } from "drizzle-orm";
 import type { LessonWithProgress } from "@aslema/shared";
 import { optionalUserId } from "../middleware/auth";
+import { selectItemsWithTranslations } from "../db/queries/items";
 
 type Variables = {
   userId: string;
@@ -93,22 +89,7 @@ lessons.get("/:id/items", async (c) => {
   const locale = c.req.query("locale") || "fr";
   const shuffle = c.req.query("shuffle") === "true";
 
-  const result = await db
-    .select({
-      id: items.id,
-      lessonId: items.lessonId,
-      type: items.type,
-      tunisian: items.tunisian,
-      audioFile: items.audioFile,
-      difficulty: items.difficulty,
-      orderIndex: items.orderIndex,
-      translation: itemTranslations.translation,
-    })
-    .from(items)
-    .leftJoin(
-      itemTranslations,
-      sql`${itemTranslations.itemId} = ${items.id} AND ${itemTranslations.locale} = ${locale}`
-    )
+  const result = await selectItemsWithTranslations(locale)
     .where(eq(items.lessonId, id))
     .orderBy(shuffle ? sql`RANDOM()` : items.orderIndex);
 
