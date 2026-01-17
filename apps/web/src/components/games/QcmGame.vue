@@ -2,7 +2,12 @@
 import { ref, computed } from "vue";
 import Button from "@/components/ui/button/Button.vue";
 import { CheckIcon, XIcon, Volume2Icon } from "lucide-vue-next";
-import type { GameItem, GameResult, QcmDirection, SM2Quality } from "@aslema/shared";
+import type {
+  GameItem,
+  GameResult,
+  QcmDirection,
+  SM2Quality,
+} from "@aslema/shared";
 
 const props = defineProps<{
   item: GameItem;
@@ -89,18 +94,14 @@ function getButtonVariant(option: string) {
 
 function getButtonClass(option: string) {
   if (!showResult.value) return "";
-  if (option === correctAnswer.value)
-    return "bg-green-500 hover:bg-green-500 border-green-500";
-  if (option === selectedAnswer.value)
-    return "bg-red-500 hover:bg-red-500 border-red-500";
-  return "opacity-50";
+  if (option === correctAnswer.value) return "bg-green-600 border-green-600";
 }
 </script>
 
 <template>
-  <div class="flex flex-col gap-6">
+  <div class="flex flex-col gap-8">
     <!-- Question -->
-    <div class="text-center space-y-2">
+    <div class="text-center">
       <p class="text-sm text-muted-foreground">{{ instruction }}</p>
       <div class="flex items-center justify-center gap-3">
         <h2 class="text-3xl font-bold font-heading">{{ question }}</h2>
@@ -120,10 +121,7 @@ function getButtonClass(option: string) {
         v-for="option in options"
         :key="option"
         :variant="getButtonVariant(option)"
-        :class="[
-          'h-14 text-lg justify-start px-4 relative',
-          getButtonClass(option),
-        ]"
+        :class="['h-14 text-lg justify-start', getButtonClass(option)]"
         :disabled="showResult"
         @click="selectAnswer(option)"
       >
@@ -143,7 +141,7 @@ function getButtonClass(option: string) {
 
     <!-- Feedback -->
     <div
-      v-if="showResult"
+      v-if="showResult || true"
       class="text-center py-4"
       :class="isCorrect ? 'text-green-600' : 'text-red-600'"
     >

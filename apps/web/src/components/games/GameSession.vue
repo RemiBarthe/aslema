@@ -12,6 +12,7 @@ import type {
   QcmDirection,
   GameSessionOptions,
 } from "@aslema/shared";
+import { CheckIcon, XIcon } from "lucide-vue-next";
 
 interface SessionItem {
   reviewId: number | null;
@@ -187,9 +188,14 @@ watch(
     <div class="space-y-2">
       <div class="flex justify-between text-sm text-muted-foreground">
         <span>{{ currentIndex + 1 }} / {{ items.length }}</span>
-        <div class="flex gap-3">
-          <span class="text-green-600">✓ {{ correctCount }}</span>
-          <span class="text-red-600">✗ {{ incorrectCount }}</span>
+        <div class="flex gap-4">
+          <span class="flex gap-0.5 items-center">
+            <CheckIcon class="w-4 h-4" /> {{ correctCount }}
+          </span>
+
+          <span class="flex gap-0.5 items-center">
+            <XIcon class="w-4 h-4" /> {{ incorrectCount }}
+          </span>
         </div>
       </div>
       <Progress :model-value="progress" class="h-2" />

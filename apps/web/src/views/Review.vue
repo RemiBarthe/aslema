@@ -46,7 +46,7 @@ const startButtonLabel = computed(() => {
           <ArrowLeftIcon />
         </Button>
       </RouterLink>
-      <h1 class="text-2xl font-bold font-heading">Session du jour</h1>
+      <h1 class="text-xl font-semibold font-heading">Session du jour</h1>
     </div>
 
     <RouterLink v-if="totalToPractice > 0" to="/review/session">
