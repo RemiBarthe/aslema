@@ -1,142 +1,110 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { toast } from "vue-sonner";
-import { getLessonItems } from "@/lib/api";
+import { computed } from "vue";
+import { RouterLink, useRoute } from "vue-router";
 import { useLesson, useLessonItems } from "@/composables/useQueries";
-import Button from "@/components/ui/button/Button.vue";
+import { WordList } from "@/components/ui/word-list";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertCircleIcon,
+  ArrowLeftIcon,
+  PlayIcon,
+} from "lucide-vue-next";
 import { Spinner } from "@/components/ui/spinner";
-import { ChevronLeft, Volume2 } from "lucide-vue-next";
-import { GameSession } from "@/components/games";
-import type { GameItem } from "@aslema/shared";
+import Button from "@/components/ui/button/Button.vue";
 
 const route = useRoute();
-const router = useRouter();
-
 const lessonId = computed(() => Number(route.params.lessonId));
 
-const {
-  data: lesson,
-  isLoading: lessonLoading,
-  error: lessonError,
-} = useLesson(lessonId.value);
-const {
-  data: items,
-  isLoading: itemsLoading,
-  error: itemsError,
-} = useLessonItems(lessonId.value);
+const { data: lesson, isLoading: lessonLoading, error: lessonError } = useLesson(lessonId.value);
+const { data: items, isLoading: itemsLoading, error: itemsError } = useLessonItems(lessonId.value);
 
-const loading = computed(() => lessonLoading.value || itemsLoading.value);
+const isLoading = computed(() => lessonLoading.value || itemsLoading.value);
 const error = computed(() => lessonError.value || itemsError.value);
 
-// Game state
-const gameMode = ref(false);
-const gameItems = ref<GameItem[]>([]);
+// Item count
+const itemCount = computed(() => items.value?.length ?? 0);
 
-async function startGame() {
-  try {
-    // Fetch shuffled items for the quiz
-    const shuffledItems = await getLessonItems(lessonId.value, "fr", true);
-    // Convert to GameItem format (no reviewId = practice mode)
-    gameItems.value = shuffledItems.map((item) => ({
-      reviewId: null,
-      itemId: item.id,
-      tunisian: item.tunisian,
-      translation: item.translation ?? "",
-      audioFile: item.audioFile,
-      lessonId: item.lessonId,
-    }));
-    gameMode.value = true;
-  } catch (error) {
-    console.error("Failed to start game:", error);
-    toast.error("Erreur lors du démarrage du quiz");
-  }
-}
+// Button label
+const startButtonLabel = computed(() => {
+  if (itemCount.value === 0) return "Aucun élément";
+  return `Commencer (${itemCount.value})`;
+});
 
-function handleGameComplete() {
-  gameMode.value = false;
-}
-
-function goBack() {
-  if (gameMode.value) {
-    gameMode.value = false;
-  } else {
-    router.push("/");
-  }
-}
+// Convert items to TodayItem format for WordList
+const wordListItems = computed(() => {
+  if (!items.value) return [];
+  return items.value.map((item) => ({
+    reviewId: null,
+    itemId: item.id,
+    tunisian: item.tunisian,
+    translation: item.translation ?? "",
+    audioFile: item.audioFile,
+    lessonId: item.lessonId,
+  }));
+});
 </script>
 
 <template>
-  <div class="min-h-screen bg-background flex flex-col">
-    <div class="flex items-center gap-3">
-      <button @click="goBack" class="p-2 -ml-2 hover:bg-accent rounded-lg">
-        <ChevronLeft class="w-5 h-5" />
-      </button>
-      <div class="flex-1 min-w-0">
-        <h1 class="font-medium truncate">
-          {{ lesson?.title || "Chargement..." }}
-        </h1>
-        <p v-if="gameMode" class="text-sm text-muted-foreground">
-          Mode entraînement
-        </p>
-      </div>
+  <div
+    class="sticky top-16 z-10 bg-background flex items-center justify-between pb-1"
+  >
+    <div class="flex items-center gap-2">
+      <RouterLink to="/" class="text-muted-foreground hover:text-foreground">
+        <Button variant="ghost" size="icon-sm">
+          <ArrowLeftIcon />
+        </Button>
+      </RouterLink>
+      <h1 class="text-xl font-semibold font-heading">
+        {{ lesson?.title || "Leçon" }}
+      </h1>
     </div>
 
+    <RouterLink
+      v-if="itemCount > 0"
+      :to="`/learn/${lessonId}/session`"
+    >
+      <Button>
+        <PlayIcon class="mr-2 h-4 w-4" />
+        {{ startButtonLabel }}
+      </Button>
+    </RouterLink>
+
+    <RouterLink v-else to="/">
+      <Button>Retour à l'accueil</Button>
+    </RouterLink>
+  </div>
+
+  <div class="mt-8">
     <!-- Loading -->
-    <div v-if="loading" class="flex-1 flex items-center justify-center">
+    <div v-if="isLoading" class="flex justify-center py-12">
       <Spinner />
     </div>
 
     <!-- Error -->
-    <div
-      v-else-if="error"
-      class="flex-1 flex items-center justify-center text-destructive p-4"
-    >
-      {{ error.message }}
-    </div>
+    <Alert v-else-if="error" variant="destructive">
+      <AlertCircleIcon />
+      <AlertTitle>Erreur</AlertTitle>
+      <AlertDescription>{{ error.message }}</AlertDescription>
+    </Alert>
 
-    <!-- Game Mode (Practice - no SRS tracking) -->
-    <template v-else-if="gameMode">
-      <div class="flex-1 py-4">
-        <GameSession
-          :items="gameItems"
-          :options="{ trackProgress: false, lessonId: lessonId }"
-          @complete="handleGameComplete"
-        />
-      </div>
-    </template>
-
-    <!-- Word List Mode -->
-    <template v-else>
-      <div class="space-y-3">
-        <div
-          v-for="item in items"
-          :key="item.id"
-          class="p-4 rounded-xl border bg-card"
-        >
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <h3 class="font-medium">{{ item.tunisian }}</h3>
-              <p class="text-sm text-muted-foreground">
-                {{ item.translation }}
-              </p>
-            </div>
-            <button
-              v-if="item.audioFile"
-              class="p-2 hover:bg-accent rounded-lg"
-            >
-              <Volume2 class="w-5 h-5" />
-            </button>
-          </div>
+    <!-- Content -->
+    <div v-else class="space-y-6">
+      <!-- Empty state -->
+      <div v-if="itemCount === 0" class="text-center py-8 space-y-4">
+        <AlertCircleIcon class="w-16 h-16 mx-auto text-muted-foreground" />
+        <div>
+          <h2 class="text-xl font-semibold">Aucun élément</h2>
+          <p class="text-muted-foreground">Cette leçon ne contient aucun mot.</p>
         </div>
       </div>
 
-      <!-- Start button -->
-      <div class="sticky bottom-0 p-4 border-t bg-background">
-        <Button class="w-full" size="lg" @click="startGame">
-          Commencer le quiz
-        </Button>
-      </div>
-    </template>
+      <WordList
+        v-else
+        title="Mots de la leçon"
+        :items="wordListItems"
+        :icon="PlayIcon"
+        color-class="bg-blue-100 dark:bg-blue-900/30 text-blue-600"
+      />
+    </div>
   </div>
 </template>

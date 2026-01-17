@@ -82,7 +82,7 @@ function selectAnswer(answer: string) {
       responseTimeMs,
       userAnswer: answer,
     });
-  }, 1200);
+  }, 2000);
 }
 
 function getButtonVariant(option: string) {

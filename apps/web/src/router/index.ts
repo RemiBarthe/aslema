@@ -24,6 +24,12 @@ const router = createRouter({
       component: () => import("@/views/Lesson.vue"),
       props: true,
     },
+    {
+      path: "/learn/:lessonId/session",
+      name: "lesson-session",
+      component: () => import("@/views/LessonSession.vue"),
+      props: true,
+    },
   ],
 });
 
