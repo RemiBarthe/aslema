@@ -1,5 +1,3 @@
-// API response types
-
 import type { Lesson } from "./content";
 import type { StudyItem } from "./reviews";
 
