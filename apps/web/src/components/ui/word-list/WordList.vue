@@ -7,16 +7,11 @@ import {
   ItemMedia,
 } from "@/components/ui/item";
 import type { Component } from "vue";
-
-export interface WordItem {
-  itemId: number;
-  tunisian: string;
-  translation: string | null;
-}
+import type { StudyItem } from "@aslema/shared";
 
 defineProps<{
   title: string;
-  items: WordItem[];
+  items: StudyItem[];
   icon: Component;
   colorClass: string; // e.g. "bg-orange-100 dark:bg-orange-900/30 text-orange-600"
 }>();

@@ -4,19 +4,23 @@ import { RouterLink, useRoute } from "vue-router";
 import { useLesson, useLessonItems } from "@/composables/useQueries";
 import { WordList } from "@/components/ui/word-list";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import {
-  AlertCircleIcon,
-  ArrowLeftIcon,
-  PlayIcon,
-} from "lucide-vue-next";
+import { AlertCircleIcon, ArrowLeftIcon, PlayIcon } from "lucide-vue-next";
 import { Spinner } from "@/components/ui/spinner";
 import Button from "@/components/ui/button/Button.vue";
 
 const route = useRoute();
 const lessonId = computed(() => Number(route.params.lessonId));
 
-const { data: lesson, isLoading: lessonLoading, error: lessonError } = useLesson(lessonId.value);
-const { data: items, isLoading: itemsLoading, error: itemsError } = useLessonItems(lessonId.value);
+const {
+  data: lesson,
+  isLoading: lessonLoading,
+  error: lessonError,
+} = useLesson(lessonId.value);
+const {
+  data: items,
+  isLoading: itemsLoading,
+  error: itemsError,
+} = useLessonItems(lessonId.value);
 
 const isLoading = computed(() => lessonLoading.value || itemsLoading.value);
 const error = computed(() => lessonError.value || itemsError.value);
@@ -30,18 +34,7 @@ const startButtonLabel = computed(() => {
   return `Commencer (${itemCount.value})`;
 });
 
-// Convert items to TodayItem format for WordList
-const wordListItems = computed(() => {
-  if (!items.value) return [];
-  return items.value.map((item) => ({
-    reviewId: null,
-    itemId: item.id,
-    tunisian: item.tunisian,
-    translation: item.translation ?? "",
-    audioFile: item.audioFile,
-    lessonId: item.lessonId,
-  }));
-});
+const wordListItems = computed(() => items.value ?? []);
 </script>
 
 <template>
@@ -59,10 +52,7 @@ const wordListItems = computed(() => {
       </h1>
     </div>
 
-    <RouterLink
-      v-if="itemCount > 0"
-      :to="`/learn/${lessonId}/session`"
-    >
+    <RouterLink v-if="itemCount > 0" :to="`/learn/${lessonId}/session`">
       <Button>
         <PlayIcon class="mr-2 h-4 w-4" />
         {{ startButtonLabel }}
@@ -94,7 +84,9 @@ const wordListItems = computed(() => {
         <AlertCircleIcon class="w-16 h-16 mx-auto text-muted-foreground" />
         <div>
           <h2 class="text-xl font-semibold">Aucun élément</h2>
-          <p class="text-muted-foreground">Cette leçon ne contient aucun mot.</p>
+          <p class="text-muted-foreground">
+            Cette leçon ne contient aucun mot.
+          </p>
         </div>
       </div>
 

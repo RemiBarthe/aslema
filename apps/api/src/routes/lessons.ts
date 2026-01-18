@@ -4,7 +4,7 @@ import { lessons as lessonsTable, items, reviews } from "../db/schema";
 import { eq, sql, and, gte } from "drizzle-orm";
 import type { LessonWithProgress } from "@aslema/shared";
 import { optionalUserId } from "../middleware/auth";
-import { selectItemsWithTranslations } from "../db/queries/items";
+import { selectStudyItems } from "../db/queries/items";
 
 type Variables = {
   userId: string;
@@ -12,11 +12,9 @@ type Variables = {
 
 export const lessons = new Hono<{ Variables: Variables }>();
 
-// Get all lessons with progress
 lessons.get("/", optionalUserId, async (c) => {
   const userId = c.get("userId");
 
-  // Optimized query with LEFT JOINs and GROUP BY - single query, no N+1
   const result = await db
     .select({
       id: lessonsTable.id,
@@ -36,7 +34,7 @@ lessons.get("/", optionalUserId, async (c) => {
     .leftJoin(items, eq(items.lessonId, lessonsTable.id))
     .leftJoin(
       reviews,
-      and(eq(reviews.itemId, items.id), eq(reviews.userId, userId))
+      and(eq(reviews.itemId, items.id), eq(reviews.userId, userId)),
     )
     .groupBy(
       lessonsTable.id,
@@ -44,7 +42,7 @@ lessons.get("/", optionalUserId, async (c) => {
       lessonsTable.description,
       lessonsTable.icon,
       lessonsTable.orderIndex,
-      lessonsTable.isPremium
+      lessonsTable.isPremium,
     )
     .orderBy(lessonsTable.orderIndex);
 
@@ -67,7 +65,6 @@ lessons.get("/", optionalUserId, async (c) => {
   return c.json({ success: true, data: lessonsWithProgress });
 });
 
-// Get single lesson
 lessons.get("/:id", async (c) => {
   const id = parseInt(c.req.param("id"));
 
@@ -83,13 +80,12 @@ lessons.get("/:id", async (c) => {
   return c.json({ success: true, data: lesson });
 });
 
-// Get items for a lesson
 lessons.get("/:id/items", async (c) => {
   const id = parseInt(c.req.param("id"));
   const locale = c.req.query("locale") || "fr";
   const shuffle = c.req.query("shuffle") === "true";
 
-  const result = await selectItemsWithTranslations(locale)
+  const result = await selectStudyItems(locale)
     .where(eq(items.lessonId, id))
     .orderBy(shuffle ? sql`RANDOM()` : items.orderIndex);
 

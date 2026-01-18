@@ -3,14 +3,14 @@ import { ref, computed } from "vue";
 import Button from "@/components/ui/button/Button.vue";
 import { CheckIcon, XIcon, Volume2Icon } from "lucide-vue-next";
 import type {
-  GameItem,
+  StudyItem,
   GameResult,
   QcmDirection,
   SM2Quality,
 } from "@aslema/shared";
 
 const props = defineProps<{
-  item: GameItem;
+  item: StudyItem;
   options: string[];
   direction: QcmDirection;
 }>();

@@ -1,48 +1,16 @@
 import { Hono } from "hono";
-import { db } from "../db";
 import { items as itemsTable } from "../db/schema";
 import { eq, sql, ne, and } from "drizzle-orm";
-import {
-  selectItemsWithTranslations,
-  selectMinimalItemsWithTranslations,
-} from "../db/queries/items";
+import { selectDistractors } from "../db/queries/items";
 
 const itemsRouter = new Hono();
 
-// Get all items
-itemsRouter.get("/", async (c) => {
-  const locale = c.req.query("locale") || "fr";
-  const limit = parseInt(c.req.query("limit") || "50");
-
-  const result = await selectItemsWithTranslations(locale).limit(limit);
-
-  return c.json({ success: true, data: result });
-});
-
-// Get single item
-itemsRouter.get("/:id", async (c) => {
-  const id = parseInt(c.req.param("id"));
-  const locale = c.req.query("locale") || "fr";
-
-  const [item] = await selectItemsWithTranslations(locale).where(
-    eq(itemsTable.id, id)
-  );
-
-  if (!item) {
-    return c.json({ success: false, error: "Item not found" }, 404);
-  }
-
-  return c.json({ success: true, data: item });
-});
-
-// Get random items (for QCM distractors)
 itemsRouter.get("/random/:count", async (c) => {
   const count = parseInt(c.req.param("count"));
   const excludeId = c.req.query("excludeId");
   const lessonId = c.req.query("lessonId");
   const locale = c.req.query("locale") || "fr";
 
-  // Build conditions
   const conditions = [];
   if (excludeId) {
     conditions.push(ne(itemsTable.id, parseInt(excludeId)));
@@ -51,7 +19,7 @@ itemsRouter.get("/random/:count", async (c) => {
     conditions.push(eq(itemsTable.lessonId, parseInt(lessonId)));
   }
 
-  const result = await selectMinimalItemsWithTranslations(locale)
+  const result = await selectDistractors(locale)
     .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(sql`RANDOM()`)
     .limit(count);

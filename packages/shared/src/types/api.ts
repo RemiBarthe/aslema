@@ -1,7 +1,7 @@
 // API response types
 
 import type { Lesson } from "./content";
-import type { TodayItem } from "./reviews";
+import type { StudyItem } from "./reviews";
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -27,4 +27,4 @@ export interface UserStatsResponse {
   totalNewAvailable: number;
 }
 
-export type { TodayItem };
+export type { StudyItem };

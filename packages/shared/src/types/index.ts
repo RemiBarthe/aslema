@@ -1,5 +1,3 @@
-// Re-export all types from sub-modules
-
 export * from "./content";
 export * from "./learning";
 export * from "./games";

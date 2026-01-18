@@ -1,5 +1,3 @@
-// Content types - Lessons and Items
-
 export type ItemType = "word" | "phrase" | "expression" | "dialogue" | "verb";
 
 export interface Lesson {
@@ -28,6 +26,8 @@ export interface ItemTranslation {
   translation: string;
 }
 
-export interface ItemWithTranslation extends Item {
-  translation: string;
+// Minimal type for QCM distractors (wrong answer options)
+export interface Distractor {
+  tunisian: string;
+  translation: string | null;
 }

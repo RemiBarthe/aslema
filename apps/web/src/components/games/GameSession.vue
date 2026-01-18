@@ -7,25 +7,16 @@ import Progress from "@/components/ui/progress/Progress.vue";
 import { Spinner } from "@/components/ui/spinner";
 import { getRandomItems, submitAnswer } from "@/lib/api";
 import type {
-  GameItem,
+  StudyItem,
   GameResult,
   QcmDirection,
   GameSessionOptions,
 } from "@aslema/shared";
 import { CheckIcon, XIcon } from "lucide-vue-next";
 
-interface SessionItem {
-  reviewId: number | null;
-  itemId: number;
-  tunisian: string;
-  translation: string;
-  audioFile?: string | null;
-  lessonId?: number | null;
-}
-
 const props = withDefaults(
   defineProps<{
-    items: SessionItem[];
+    items: StudyItem[];
     options?: GameSessionOptions;
   }>(),
   {
@@ -46,18 +37,8 @@ const qcmOptions = ref<string[]>([]);
 const currentDirection = ref<QcmDirection>("tunisian-to-french");
 const isLoading = ref(false);
 
-// Current item
-const currentItem = computed((): GameItem | null => {
-  const item = props.items[currentIndex.value];
-  if (!item) return null;
-  return {
-    reviewId: item.reviewId,
-    itemId: item.itemId,
-    tunisian: item.tunisian,
-    translation: item.translation,
-    audioFile: item.audioFile,
-    lessonId: item.lessonId,
-  };
+const currentItem = computed((): StudyItem | null => {
+  return props.items[currentIndex.value] ?? null;
 });
 
 // Progress

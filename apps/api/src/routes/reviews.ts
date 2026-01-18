@@ -10,7 +10,11 @@ import {
 import { eq, sql, lte, and, gte } from "drizzle-orm";
 import type { SM2Quality, SM2Result } from "@aslema/shared";
 import { requireUserId, optionalUserId } from "../middleware/auth";
-import { getStartOfDay, calculateNewStreak, getCurrentStreak } from "../utils/date";
+import {
+  getStartOfDay,
+  calculateNewStreak,
+  getCurrentStreak,
+} from "../utils/date";
 
 type Variables = {
   userId: string;
@@ -23,7 +27,7 @@ function calculateSM2(
   quality: SM2Quality,
   prevEaseFactor: number,
   prevInterval: number,
-  prevRepetitions: number
+  prevRepetitions: number,
 ): SM2Result {
   let easeFactor = prevEaseFactor;
   let interval = prevInterval;
@@ -48,7 +52,7 @@ function calculateSM2(
   // Update ease factor
   easeFactor = Math.max(
     1.3,
-    easeFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
+    easeFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02)),
   );
 
   const nextReviewAt = new Date();
@@ -57,7 +61,6 @@ function calculateSM2(
   return { easeFactor, interval, repetitions, nextReviewAt };
 }
 
-// Get due reviews for a user
 reviews.get("/due", optionalUserId, async (c) => {
   const userId = c.get("userId");
   const locale = c.req.query("locale") || "fr";
@@ -66,30 +69,27 @@ reviews.get("/due", optionalUserId, async (c) => {
 
   const result = await db
     .select({
-      reviewId: reviewsTable.id,
       itemId: items.id,
       tunisian: items.tunisian,
-      audioFile: items.audioFile,
       translation: itemTranslations.translation,
-      easeFactor: reviewsTable.easeFactor,
-      interval: reviewsTable.interval,
-      repetitions: reviewsTable.repetitions,
+      audioFile: items.audioFile,
+      reviewId: reviewsTable.id,
+      lessonId: items.lessonId,
     })
     .from(reviewsTable)
     .innerJoin(items, eq(reviewsTable.itemId, items.id))
     .leftJoin(
       itemTranslations,
-      sql`${itemTranslations.itemId} = ${items.id} AND ${itemTranslations.locale} = ${locale}`
+      sql`${itemTranslations.itemId} = ${items.id} AND ${itemTranslations.locale} = ${locale}`,
     )
     .where(
-      and(eq(reviewsTable.userId, userId), lte(reviewsTable.nextReviewAt, now))
+      and(eq(reviewsTable.userId, userId), lte(reviewsTable.nextReviewAt, now)),
     )
     .limit(limit);
 
   return c.json({ success: true, data: result });
 });
 
-// Submit a review answer
 reviews.post("/:id/answer", requireUserId, async (c) => {
   const userId = c.get("userId");
   const reviewId = parseInt(c.req.param("id"));
@@ -120,7 +120,7 @@ reviews.post("/:id/answer", requireUserId, async (c) => {
     body.quality,
     review.easeFactor ?? 2.5,
     review.interval ?? 0,
-    review.repetitions ?? 0
+    review.repetitions ?? 0,
   );
 
   // Update review
@@ -156,9 +156,12 @@ reviews.post("/:id/answer", requireUserId, async (c) => {
 
     const newStreak = calculateNewStreak(
       currentStats?.lastActivityAt ?? null,
-      currentStats?.currentStreak ?? 0
+      currentStats?.currentStreak ?? 0,
     );
-    const newLongestStreak = Math.max(newStreak, currentStats?.longestStreak ?? 0);
+    const newLongestStreak = Math.max(
+      newStreak,
+      currentStats?.longestStreak ?? 0,
+    );
 
     await db
       .insert(userStats)
@@ -189,7 +192,6 @@ reviews.post("/:id/answer", requireUserId, async (c) => {
   });
 });
 
-// Start learning new items (create reviews)
 reviews.post("/start", requireUserId, async (c) => {
   const userId = c.get("userId");
   const body = await c.req.json<{
@@ -213,7 +215,6 @@ reviews.post("/start", requireUserId, async (c) => {
   return c.json({ success: true, data: { created: values.length } });
 });
 
-// Get user stats
 reviews.get("/stats", requireUserId, async (c) => {
   const userId = c.get("userId");
   const dailyNewLimit = parseInt(c.req.query("dailyNewLimit") || "5");
@@ -230,7 +231,7 @@ reviews.get("/stats", requireUserId, async (c) => {
   // Calculate current streak (0 if broken)
   const currentStreak = getCurrentStreak(
     stats?.lastActivityAt ?? null,
-    stats?.currentStreak ?? 0
+    stats?.currentStreak ?? 0,
   );
 
   // Count due reviews (repetitions >= 1 AND nextReviewAt <= now)
@@ -241,8 +242,8 @@ reviews.get("/stats", requireUserId, async (c) => {
       and(
         eq(reviewsTable.userId, userId),
         gte(reviewsTable.repetitions, 1),
-        lte(reviewsTable.nextReviewAt, now)
-      )
+        lte(reviewsTable.nextReviewAt, now),
+      ),
     );
 
   // Count new items being learned (repetitions = 0, already in reviews table)
@@ -250,20 +251,32 @@ reviews.get("/stats", requireUserId, async (c) => {
     .select({ count: sql<number>`COUNT(*)` })
     .from(reviewsTable)
     .where(
-      and(eq(reviewsTable.userId, userId), eq(reviewsTable.repetitions, 0))
+      and(eq(reviewsTable.userId, userId), eq(reviewsTable.repetitions, 0)),
     );
+  const newItemsBeingLearnedCount = newItemsBeingLearnedResult?.count ?? 0;
 
   // Count how many items were started today (created in reviews table today)
   const [startedTodayResult] = await db
     .select({ count: sql<number>`COUNT(*)` })
     .from(reviewsTable)
     .where(
-      and(eq(reviewsTable.userId, userId), gte(reviewsTable.createdAt, startOfToday))
+      and(
+        eq(reviewsTable.userId, userId),
+        gte(reviewsTable.createdAt, startOfToday),
+      ),
     );
 
   // Calculate how many truly new items can be added today
-  const remainingNewToday = Math.max(0, dailyNewLimit - (startedTodayResult?.count ?? 0));
-  const remainingSlots = Math.max(0, remainingNewToday - (newItemsBeingLearnedResult?.count ?? 0));
+  const remainingNewToday = Math.max(
+    0,
+    dailyNewLimit - (startedTodayResult?.count ?? 0),
+  );
+
+  // Fill up to the daily new limit, accounting for items already being learned.
+  const remainingSlots = Math.max(
+    0,
+    Math.min(remainingNewToday, dailyNewLimit - newItemsBeingLearnedCount),
+  );
 
   // Count truly new items available (never started)
   const [totalNewResult] = await db
@@ -273,13 +286,16 @@ reviews.get("/stats", requireUserId, async (c) => {
       sql`${items.id} NOT IN (
         SELECT ${reviewsTable.itemId} FROM ${reviewsTable}
         WHERE ${reviewsTable.userId} = ${userId}
-      )`
+      )`,
     );
 
-  const trulyNewAvailable = Math.min(totalNewResult?.count ?? 0, remainingSlots);
+  const trulyNewAvailable = Math.min(
+    totalNewResult?.count ?? 0,
+    remainingSlots,
+  );
 
   // Total new items in today's session = items being learned + truly new available
-  const newItemsCount = (newItemsBeingLearnedResult?.count ?? 0) + trulyNewAvailable;
+  const newItemsCount = newItemsBeingLearnedCount + trulyNewAvailable;
 
   // Count items learned today (had their first successful review today)
   const [learnedTodayResult] = await db
@@ -289,8 +305,8 @@ reviews.get("/stats", requireUserId, async (c) => {
       and(
         eq(reviewsTable.userId, userId),
         gte(reviewsTable.repetitions, 1),
-        gte(reviewsTable.lastReviewedAt, startOfToday)
-      )
+        gte(reviewsTable.lastReviewedAt, startOfToday),
+      ),
     );
 
   return c.json({
@@ -308,7 +324,6 @@ reviews.get("/stats", requireUserId, async (c) => {
   });
 });
 
-// Get today's learning session (due reviews + new items)
 reviews.get("/today", requireUserId, async (c) => {
   const userId = c.get("userId");
   const locale = c.req.query("locale") || "fr";
@@ -321,52 +336,46 @@ reviews.get("/today", requireUserId, async (c) => {
   // Get items to review (repetitions >= 1 AND nextReviewAt <= now)
   const dueReviews = await db
     .select({
-      reviewId: reviewsTable.id,
       itemId: items.id,
       tunisian: items.tunisian,
-      audioFile: items.audioFile,
       translation: itemTranslations.translation,
-      easeFactor: reviewsTable.easeFactor,
-      interval: reviewsTable.interval,
-      repetitions: reviewsTable.repetitions,
-      type: sql<"review">`'review'`,
+      audioFile: items.audioFile,
+      reviewId: reviewsTable.id,
+      lessonId: items.lessonId,
     })
     .from(reviewsTable)
     .innerJoin(items, eq(reviewsTable.itemId, items.id))
     .leftJoin(
       itemTranslations,
-      sql`${itemTranslations.itemId} = ${items.id} AND ${itemTranslations.locale} = ${locale}`
+      sql`${itemTranslations.itemId} = ${items.id} AND ${itemTranslations.locale} = ${locale}`,
     )
     .where(
       and(
         eq(reviewsTable.userId, userId),
         gte(reviewsTable.repetitions, 1),
-        lte(reviewsTable.nextReviewAt, now)
-      )
+        lte(reviewsTable.nextReviewAt, now),
+      ),
     )
     .limit(dueLimit);
 
   // Get new items being learned (repetitions = 0, already in reviews table)
   const newItemsBeingLearned = await db
     .select({
-      reviewId: reviewsTable.id,
       itemId: items.id,
       tunisian: items.tunisian,
-      audioFile: items.audioFile,
       translation: itemTranslations.translation,
-      easeFactor: reviewsTable.easeFactor,
-      interval: reviewsTable.interval,
-      repetitions: reviewsTable.repetitions,
-      type: sql<"new">`'new'`,
+      audioFile: items.audioFile,
+      reviewId: reviewsTable.id,
+      lessonId: items.lessonId,
     })
     .from(reviewsTable)
     .innerJoin(items, eq(reviewsTable.itemId, items.id))
     .leftJoin(
       itemTranslations,
-      sql`${itemTranslations.itemId} = ${items.id} AND ${itemTranslations.locale} = ${locale}`
+      sql`${itemTranslations.itemId} = ${items.id} AND ${itemTranslations.locale} = ${locale}`,
     )
     .where(
-      and(eq(reviewsTable.userId, userId), eq(reviewsTable.repetitions, 0))
+      and(eq(reviewsTable.userId, userId), eq(reviewsTable.repetitions, 0)),
     );
 
   // Count how many items were created today (started learning today)
@@ -374,43 +383,42 @@ reviews.get("/today", requireUserId, async (c) => {
     .select({ startedToday: sql<number>`COUNT(*)` })
     .from(reviewsTable)
     .where(
-      and(eq(reviewsTable.userId, userId), gte(reviewsTable.createdAt, startOfToday))
+      and(
+        eq(reviewsTable.userId, userId),
+        gte(reviewsTable.createdAt, startOfToday),
+      ),
     );
 
-  const remainingNewToday = Math.max(
-    0,
-    newLimit - (startedToday ?? 0)
-  );
+  const newItemsBeingLearnedCount = newItemsBeingLearned.length;
+  const remainingNewToday = Math.max(0, newLimit - (startedToday ?? 0));
 
   // Get truly new items (never seen before) up to remaining daily limit
-  // IMPORTANT: Only add new items if there are no items being learned AND we haven't hit today's limit
-  const remainingSlots = newItemsBeingLearned.length > 0
-    ? 0
-    : Math.max(0, remainingNewToday);
+  // Fill up to the daily new limit, accounting for items already being learned.
+  const remainingSlots = Math.max(
+    0,
+    Math.min(remainingNewToday, newLimit - newItemsBeingLearnedCount),
+  );
   const trulyNewItems =
     remainingSlots > 0
       ? await db
           .select({
-            reviewId: sql<number | null>`NULL`,
             itemId: items.id,
             tunisian: items.tunisian,
-            audioFile: items.audioFile,
             translation: itemTranslations.translation,
-            easeFactor: sql<number>`2.5`,
-            interval: sql<number>`0`,
-            repetitions: sql<number>`0`,
-            type: sql<"new">`'new'`,
+            audioFile: items.audioFile,
+            reviewId: sql<number | null>`NULL`,
+            lessonId: items.lessonId,
           })
           .from(items)
           .leftJoin(
             itemTranslations,
-            sql`${itemTranslations.itemId} = ${items.id} AND ${itemTranslations.locale} = ${locale}`
+            sql`${itemTranslations.itemId} = ${items.id} AND ${itemTranslations.locale} = ${locale}`,
           )
           .where(
             sql`${items.id} NOT IN (
             SELECT ${reviewsTable.itemId} FROM ${reviewsTable}
             WHERE ${reviewsTable.userId} = ${userId}
-          )`
+          )`,
           )
           .orderBy(items.orderIndex)
           .limit(remainingSlots)
@@ -422,28 +430,25 @@ reviews.get("/today", requireUserId, async (c) => {
   // Get items learned today (reviewed today, repetitions >= 1)
   const learnedTodayItems = await db
     .select({
-      reviewId: reviewsTable.id,
       itemId: items.id,
       tunisian: items.tunisian,
-      audioFile: items.audioFile,
       translation: itemTranslations.translation,
-      easeFactor: reviewsTable.easeFactor,
-      interval: reviewsTable.interval,
-      repetitions: reviewsTable.repetitions,
-      type: sql<"learned">`'learned'`,
+      audioFile: items.audioFile,
+      reviewId: reviewsTable.id,
+      lessonId: items.lessonId,
     })
     .from(reviewsTable)
     .innerJoin(items, eq(reviewsTable.itemId, items.id))
     .leftJoin(
       itemTranslations,
-      sql`${itemTranslations.itemId} = ${items.id} AND ${itemTranslations.locale} = ${locale}`
+      sql`${itemTranslations.itemId} = ${items.id} AND ${itemTranslations.locale} = ${locale}`,
     )
     .where(
       and(
         eq(reviewsTable.userId, userId),
         gte(reviewsTable.repetitions, 1),
-        gte(reviewsTable.lastReviewedAt, startOfToday)
-      )
+        gte(reviewsTable.lastReviewedAt, startOfToday),
+      ),
     );
 
   return c.json({
@@ -488,12 +493,12 @@ reviews.post("/dev/simulate-days", requireUserId, async (c) => {
 
     if (review.nextReviewAt) {
       updates.nextReviewAt = new Date(
-        review.nextReviewAt.getTime() - msToSubtract
+        review.nextReviewAt.getTime() - msToSubtract,
       );
     }
     if (review.lastReviewedAt) {
       updates.lastReviewedAt = new Date(
-        review.lastReviewedAt.getTime() - msToSubtract
+        review.lastReviewedAt.getTime() - msToSubtract,
       );
     }
     if (review.createdAt) {

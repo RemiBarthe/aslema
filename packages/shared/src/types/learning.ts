@@ -1,5 +1,3 @@
-// Learning and Spaced Repetition types
-
 export interface Review {
   id: number;
   userId: string;

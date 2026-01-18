@@ -5,14 +5,14 @@ import { toast } from "vue-sonner";
 import { useTodaySession, useStartLearning } from "@/composables/useQueries";
 import { GameSession } from "@/components/games";
 import { Spinner } from "@/components/ui/spinner";
-import type { TodayItem } from "@aslema/shared";
+import type { StudyItem } from "@aslema/shared";
 
 const router = useRouter();
 const { data: session, isLoading, refetch } = useTodaySession(5, 20);
 const startLearning = useStartLearning();
 
 const isStarting = ref(false);
-const gameItems = ref<TodayItem[]>([]);
+const gameItems = ref<StudyItem[]>([]);
 const sessionStarted = ref(false);
 
 // Start the session automatically when session data is available
@@ -30,12 +30,12 @@ async function initializeSession() {
   try {
     // Filter new items that don't have a reviewId yet (truly new)
     const trulyNewItems = session.value.newItems.filter(
-      (item: TodayItem) => item.reviewId === null
+      (item) => item.reviewId === null
     );
 
     // Register new items first if any
     if (trulyNewItems.length > 0) {
-      const itemIds = trulyNewItems.map((item: TodayItem) => item.itemId);
+      const itemIds = trulyNewItems.map((item) => item.itemId);
       await startLearning.mutateAsync(itemIds);
       await refetch();
     }

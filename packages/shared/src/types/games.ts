@@ -1,5 +1,3 @@
-// Game and exercise types
-
 import type { SM2Quality } from "./learning";
 
 export type GameType = "qcm" | "fill_blank" | "dictation" | "match" | "write";
@@ -18,15 +16,6 @@ export interface Exercise {
 }
 
 export type QcmDirection = "tunisian-to-french" | "french-to-tunisian";
-
-export interface GameItem {
-  reviewId: number | null;
-  itemId: number;
-  tunisian: string;
-  translation: string;
-  audioFile?: string | null;
-  lessonId?: number | null;
-}
 
 export interface GameResult {
   itemId: number;

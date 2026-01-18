@@ -5,7 +5,7 @@ import { toast } from "vue-sonner";
 import { getLessonItems } from "@/lib/api";
 import { GameSession } from "@/components/games";
 import { Spinner } from "@/components/ui/spinner";
-import type { GameItem } from "@aslema/shared";
+import type { StudyItem } from "@aslema/shared";
 
 const route = useRoute();
 const router = useRouter();
@@ -13,7 +13,7 @@ const router = useRouter();
 const lessonId = computed(() => Number(route.params.lessonId));
 
 const isLoading = ref(true);
-const gameItems = ref<GameItem[]>([]);
+const gameItems = ref<StudyItem[]>([]);
 const sessionStarted = ref(false);
 
 // Initialize session automatically when component is mounted
@@ -27,7 +27,6 @@ async function initializeSession() {
   if (sessionStarted.value) return;
 
   try {
-    // Fetch shuffled items for the quiz
     const items = await getLessonItems(lessonId.value, "fr", true);
 
     // If no items, redirect back to lesson page
@@ -37,16 +36,7 @@ async function initializeSession() {
       return;
     }
 
-    // Convert to GameItem format (no reviewId = practice mode)
-    gameItems.value = items.map((item) => ({
-      reviewId: null,
-      itemId: item.id,
-      tunisian: item.tunisian,
-      translation: item.translation ?? "",
-      audioFile: item.audioFile,
-      lessonId: item.lessonId,
-    }));
-
+    gameItems.value = items;
     sessionStarted.value = true;
   } catch (error) {
     console.error("Failed to start session:", error);

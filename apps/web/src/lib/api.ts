@@ -1,8 +1,8 @@
 import type {
   ApiResponse,
   LessonWithProgress,
-  ItemWithTranslation,
-  DueReview,
+  StudyItem,
+  Distractor,
   TodaySession,
   UserStatsResponse,
   SM2Quality,
@@ -28,7 +28,7 @@ export function getAnonymousUserId(): string {
 
 async function fetchApi<T>(
   endpoint: string,
-  options?: RequestInit
+  options?: RequestInit,
 ): Promise<T> {
   const response = await fetch(`${API_URL}${endpoint}`, {
     headers: {
@@ -63,20 +63,17 @@ export async function getLesson(id: number): Promise<LessonWithProgress> {
 export async function getLessonItems(
   lessonId: number,
   locale = "fr",
-  shuffle = false
-): Promise<ItemWithTranslation[]> {
+  shuffle = false,
+): Promise<StudyItem[]> {
   const params = new URLSearchParams({ locale });
   if (shuffle) params.set("shuffle", "true");
-  return fetchApi<ItemWithTranslation[]>(
-    `/lessons/${lessonId}/items?${params}`
-  );
+  return fetchApi<StudyItem[]>(`/lessons/${lessonId}/items?${params}`);
 }
 
-// Items
 export async function getRandomItems(
   count: number,
-  options?: { excludeId?: number; lessonId?: number; locale?: string }
-): Promise<Pick<ItemWithTranslation, "id" | "tunisian" | "translation">[]> {
+  options?: { excludeId?: number; lessonId?: number; locale?: string },
+): Promise<Distractor[]> {
   const params = new URLSearchParams({ locale: options?.locale ?? "fr" });
   if (options?.excludeId) params.set("excludeId", String(options.excludeId));
   if (options?.lessonId) params.set("lessonId", String(options.lessonId));
@@ -85,7 +82,7 @@ export async function getRandomItems(
 
 // Reviews
 export async function startLearning(
-  itemIds: number[]
+  itemIds: number[],
 ): Promise<{ created: number }> {
   return fetchApi("/reviews/start", {
     method: "POST",
@@ -100,7 +97,7 @@ export async function submitAnswer(
     isCorrect: boolean;
     responseTimeMs?: number;
     userAnswer?: string;
-  }
+  },
 ): Promise<{
   easeFactor: number;
   interval: number;
@@ -116,11 +113,9 @@ export async function submitAnswer(
 // Get due reviews for the current user
 export async function getDueReviews(
   limit = 10,
-  locale = "fr"
-): Promise<DueReview[]> {
-  return fetchApi<DueReview[]>(
-    `/reviews/due?locale=${locale}&limit=${limit}`
-  );
+  locale = "fr",
+): Promise<StudyItem[]> {
+  return fetchApi<StudyItem[]>(`/reviews/due?locale=${locale}&limit=${limit}`);
 }
 
 // Get user stats
@@ -132,10 +127,10 @@ export async function getUserStats(): Promise<UserStatsResponse> {
 export async function getTodaySession(
   newLimit = 5,
   dueLimit = 20,
-  locale = "fr"
+  locale = "fr",
 ): Promise<TodaySession> {
   return fetchApi<TodaySession>(
-    `/reviews/today?locale=${locale}&newLimit=${newLimit}&dueLimit=${dueLimit}`
+    `/reviews/today?locale=${locale}&newLimit=${newLimit}&dueLimit=${dueLimit}`,
   );
 }
 
@@ -144,7 +139,7 @@ export async function getTodaySession(
 // ═══════════════════════════════════════════════════════════════
 
 export async function devSimulateDays(
-  days: number
+  days: number,
 ): Promise<{ message: string }> {
   return fetchApi("/reviews/dev/simulate-days", {
     method: "POST",
