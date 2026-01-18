@@ -9,18 +9,18 @@ import { Spinner } from "@/components/ui/spinner";
 import Button from "@/components/ui/button/Button.vue";
 
 const route = useRoute();
-const lessonId = computed(() => Number(route.params.lessonId));
+const lessonId = Number(route.params.lessonId);
 
 const {
   data: lesson,
   isLoading: lessonLoading,
   error: lessonError,
-} = useLesson(lessonId.value);
+} = useLesson(lessonId);
 const {
   data: items,
   isLoading: itemsLoading,
   error: itemsError,
-} = useLessonItems(lessonId.value);
+} = useLessonItems(lessonId);
 
 const isLoading = computed(() => lessonLoading.value || itemsLoading.value);
 const error = computed(() => lessonError.value || itemsError.value);
