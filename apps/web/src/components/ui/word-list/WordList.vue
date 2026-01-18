@@ -5,7 +5,15 @@ import {
   ItemDescription,
   ItemTitle,
   ItemMedia,
+  ItemActions,
 } from "@/components/ui/item";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { BookCheckIcon } from "lucide-vue-next";
 import type { Component } from "vue";
 import type { StudyItem } from "@aslema/shared";
 
@@ -39,6 +47,18 @@ defineProps<{
           <ItemTitle>{{ item.tunisian }}</ItemTitle>
           <ItemDescription>{{ item.translation }}</ItemDescription>
         </ItemContent>
+        <ItemActions v-if="item.isLearned">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <BookCheckIcon class="w-5 h-5 text-green-600" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p class="text-sm">Mot appris</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </ItemActions>
       </Item>
     </div>
   </div>

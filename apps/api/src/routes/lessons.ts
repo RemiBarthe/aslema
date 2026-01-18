@@ -8,7 +8,6 @@ import {
   type LessonWithProgress,
 } from "@aslema/shared";
 import { optionalUserId } from "../middleware/auth";
-import { selectStudyItems } from "../db/queries/items";
 
 type Variables = {
   userId: string;
@@ -84,12 +83,31 @@ lessons.get("/:id", async (c) => {
   return c.json({ success: true, data: lesson });
 });
 
-lessons.get("/:id/items", async (c) => {
+lessons.get("/:id/items", optionalUserId, async (c) => {
   const id = parseInt(c.req.param("id"));
+  const userId = c.get("userId");
   const locale = c.req.query("locale") || DEFAULT_LOCALE;
   const shuffle = c.req.query("shuffle") === "true";
 
-  const result = await selectStudyItems(locale)
+  const result = await db
+    .select({
+      itemId: items.id,
+      tunisian: items.tunisian,
+      translation: sql<string>`COALESCE(${sql.raw(`item_translations.translation`)}, ${items.tunisian})`,
+      audioFile: items.audioFile,
+      reviewId: sql<number | null>`NULL`,
+      lessonId: items.lessonId,
+      isLearned: sql<boolean>`COALESCE(${reviews.repetitions}, 0) >= ${REVIEW_REPETITIONS.COMPLETED_MIN}`,
+    })
+    .from(items)
+    .leftJoin(
+      sql.raw(`item_translations`),
+      sql`item_translations.item_id = ${items.id} AND item_translations.locale = ${locale}`,
+    )
+    .leftJoin(
+      reviews,
+      and(eq(reviews.itemId, items.id), eq(reviews.userId, userId)),
+    )
     .where(eq(items.lessonId, id))
     .orderBy(shuffle ? sql`RANDOM()` : items.orderIndex);
 

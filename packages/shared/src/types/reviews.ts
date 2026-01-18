@@ -5,6 +5,7 @@ export interface StudyItem {
   audioFile: string | null;
   reviewId: number | null;
   lessonId: number | null;
+  isLearned?: boolean;
 }
 
 export interface TodaySession {
