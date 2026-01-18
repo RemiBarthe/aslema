@@ -2,7 +2,11 @@ import { Hono } from "hono";
 import { db } from "../db";
 import { lessons as lessonsTable, items, reviews } from "../db/schema";
 import { eq, sql, and, gte } from "drizzle-orm";
-import type { LessonWithProgress } from "@aslema/shared";
+import {
+  DEFAULT_LOCALE,
+  REVIEW_REPETITIONS,
+  type LessonWithProgress,
+} from "@aslema/shared";
 import { optionalUserId } from "../middleware/auth";
 import { selectStudyItems } from "../db/queries/items";
 
@@ -26,7 +30,7 @@ lessons.get("/", optionalUserId, async (c) => {
       totalItems: sql<number>`COUNT(DISTINCT ${items.id})`.as("total_items"),
       completedItems: sql<number>`COUNT(DISTINCT CASE
         WHEN ${reviews.userId} = ${userId}
-        AND ${reviews.repetitions} >= 2
+        AND ${reviews.repetitions} >= ${REVIEW_REPETITIONS.COMPLETED_MIN}
         THEN ${reviews.itemId}
         END)`.as("completed_items"),
     })
@@ -82,7 +86,7 @@ lessons.get("/:id", async (c) => {
 
 lessons.get("/:id/items", async (c) => {
   const id = parseInt(c.req.param("id"));
-  const locale = c.req.query("locale") || "fr";
+  const locale = c.req.query("locale") || DEFAULT_LOCALE;
   const shuffle = c.req.query("shuffle") === "true";
 
   const result = await selectStudyItems(locale)

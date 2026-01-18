@@ -1,0 +1,45 @@
+export const DEFAULT_LOCALE = "fr";
+
+export const REVIEW_LIMITS = {
+  DUE_DEFAULT: 10,
+  NEW_DEFAULT: 5,
+} as const;
+
+export const REVIEW_REPETITIONS = {
+  DUE_MIN: 1,
+  COMPLETED_MIN: 2,
+} as const;
+
+export const SM2 = {
+  QUALITY_INCORRECT: 1,
+  QUALITY_MIN_CORRECT: 3,
+  QUALITY_GOOD: 4,
+  QUALITY_PERFECT: 5,
+  INITIAL_EASE_FACTOR: 2.5,
+  INITIAL_INTERVAL: 0,
+  INITIAL_REPETITIONS: 0,
+  SECOND_REPETITION: 1,
+  FIRST_INTERVAL_DAYS: 1,
+  SECOND_INTERVAL_DAYS: 6,
+  MIN_EASE_FACTOR: 1.3,
+  EASE_BONUS: 0.1,
+  EASE_PENALTY_BASE: 0.08,
+  EASE_PENALTY_FACTOR: 0.02,
+} as const;
+
+export const XP_GAINS = {
+  QUALITY_GOOD_OR_BETTER: 15,
+  QUALITY_OK: 10,
+} as const;
+
+export const QCM = {
+  DISTRACTOR_COUNT: 3,
+  OPTIONS_COUNT: 4,
+  ANSWER_DELAY_MS: 2000,
+  RESPONSE_FAST_MS: 2000,
+  RESPONSE_GOOD_MS: 5000,
+} as const;
+
+export const TIME = {
+  MS_PER_DAY: 24 * 60 * 60 * 1000,
+} as const;

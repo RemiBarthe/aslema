@@ -1,3 +1,5 @@
+import { TIME } from "@aslema/shared";
+
 export function getStartOfDay(date: Date = new Date()): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
@@ -7,7 +9,7 @@ function getDaysSinceActivity(lastActivityAt: Date): number {
   const startOfLastActivity = getStartOfDay(lastActivityAt);
   return Math.floor(
     (startOfToday.getTime() - startOfLastActivity.getTime()) /
-      (1000 * 60 * 60 * 24),
+      TIME.MS_PER_DAY,
   );
 }
 

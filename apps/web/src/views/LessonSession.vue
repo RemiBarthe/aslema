@@ -5,7 +5,7 @@ import { toast } from "vue-sonner";
 import { getLessonItems } from "@/lib/api";
 import { GameSession } from "@/components/games";
 import { Spinner } from "@/components/ui/spinner";
-import type { StudyItem } from "@aslema/shared";
+import { DEFAULT_LOCALE, type StudyItem } from "@aslema/shared";
 
 const route = useRoute();
 const router = useRouter();
@@ -27,7 +27,7 @@ async function initializeSession() {
   if (sessionStarted.value) return;
 
   try {
-    const items = await getLessonItems(lessonId.value, "fr", true);
+    const items = await getLessonItems(lessonId.value, DEFAULT_LOCALE, true);
 
     // If no items, redirect back to lesson page
     if (items.length === 0) {

@@ -2,11 +2,13 @@
 import { ref, computed } from "vue";
 import Button from "@/components/ui/button/Button.vue";
 import { CheckIcon, XIcon, Volume2Icon } from "lucide-vue-next";
-import type {
-  StudyItem,
-  GameResult,
-  QcmDirection,
-  SM2Quality,
+import {
+  QCM,
+  SM2,
+  type StudyItem,
+  type GameResult,
+  type QcmDirection,
+  type SM2Quality,
 } from "@aslema/shared";
 
 const props = defineProps<{
@@ -27,28 +29,28 @@ const startTime = ref(Date.now());
 const question = computed(() =>
   props.direction === "tunisian-to-french"
     ? props.item.tunisian
-    : props.item.translation
+    : props.item.translation,
 );
 
 // The correct answer
 const correctAnswer = computed(() =>
   props.direction === "tunisian-to-french"
     ? props.item.translation
-    : props.item.tunisian
+    : props.item.tunisian,
 );
 
 // Instruction text
 const instruction = computed(() =>
   props.direction === "tunisian-to-french"
     ? "Traduis en français"
-    : "Traduis en tunisien"
+    : "Traduis en tunisien",
 );
 
 const isCorrect = computed(() => selectedAnswer.value === correctAnswer.value);
 
 // Show audio button only for tunisian question
 const showAudio = computed(
-  () => props.direction === "tunisian-to-french" && props.item.audioFile
+  () => props.direction === "tunisian-to-french" && props.item.audioFile,
 );
 
 function selectAnswer(answer: string) {
@@ -63,13 +65,13 @@ function selectAnswer(answer: string) {
   // Calculate SM-2 quality based on correctness and response time
   let quality: SM2Quality;
   if (!correct) {
-    quality = 1; // Incorrect
-  } else if (responseTimeMs < 2000) {
-    quality = 5; // Perfect, fast
-  } else if (responseTimeMs < 5000) {
-    quality = 4; // Correct, good speed
+    quality = SM2.QUALITY_INCORRECT;
+  } else if (responseTimeMs < QCM.RESPONSE_FAST_MS) {
+    quality = SM2.QUALITY_PERFECT;
+  } else if (responseTimeMs < QCM.RESPONSE_GOOD_MS) {
+    quality = SM2.QUALITY_GOOD;
   } else {
-    quality = 3; // Correct but slow
+    quality = SM2.QUALITY_MIN_CORRECT;
   }
 
   // Emit after a short delay to show the result
@@ -82,7 +84,7 @@ function selectAnswer(answer: string) {
       responseTimeMs,
       userAnswer: answer,
     });
-  }, 2000);
+  }, QCM.ANSWER_DELAY_MS);
 }
 
 function getButtonVariant(option: string) {

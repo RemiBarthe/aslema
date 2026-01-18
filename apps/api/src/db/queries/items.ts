@@ -1,8 +1,9 @@
 import { db } from "../index";
 import { items, itemTranslations } from "../schema";
 import { sql } from "drizzle-orm";
+import { DEFAULT_LOCALE } from "@aslema/shared";
 
-export function selectStudyItems(locale = "fr") {
+export function selectStudyItems(locale = DEFAULT_LOCALE) {
   return db
     .select({
       itemId: items.id,
@@ -19,7 +20,7 @@ export function selectStudyItems(locale = "fr") {
     );
 }
 
-export function selectDistractors(locale = "fr") {
+export function selectDistractors(locale = DEFAULT_LOCALE) {
   return db
     .select({
       tunisian: items.tunisian,

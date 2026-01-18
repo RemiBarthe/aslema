@@ -13,8 +13,12 @@ import {
 } from "lucide-vue-next";
 import { Spinner } from "@/components/ui/spinner";
 import Button from "@/components/ui/button/Button.vue";
+import { REVIEW_LIMITS } from "@aslema/shared";
 
-const { data: session, isLoading, error } = useTodaySession(5, 20);
+const { data: session, isLoading, error } = useTodaySession(
+  REVIEW_LIMITS.NEW_DEFAULT,
+  REVIEW_LIMITS.DUE_DEFAULT
+);
 
 // Counts
 const reviewCount = computed(() => session.value?.dueReviews.length ?? 0);

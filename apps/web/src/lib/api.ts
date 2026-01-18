@@ -1,11 +1,13 @@
-import type {
-  ApiResponse,
-  LessonWithProgress,
-  StudyItem,
-  Distractor,
-  TodaySession,
-  UserStatsResponse,
-  SM2Quality,
+import {
+  DEFAULT_LOCALE,
+  REVIEW_LIMITS,
+  type ApiResponse,
+  type LessonWithProgress,
+  type StudyItem,
+  type Distractor,
+  type TodaySession,
+  type UserStatsResponse,
+  type SM2Quality,
 } from "@aslema/shared";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -62,7 +64,7 @@ export async function getLesson(id: number): Promise<LessonWithProgress> {
 
 export async function getLessonItems(
   lessonId: number,
-  locale = "fr",
+  locale = DEFAULT_LOCALE,
   shuffle = false,
 ): Promise<StudyItem[]> {
   const params = new URLSearchParams({ locale });
@@ -74,7 +76,9 @@ export async function getRandomItems(
   count: number,
   options?: { excludeId?: number; lessonId?: number; locale?: string },
 ): Promise<Distractor[]> {
-  const params = new URLSearchParams({ locale: options?.locale ?? "fr" });
+  const params = new URLSearchParams({
+    locale: options?.locale ?? DEFAULT_LOCALE,
+  });
   if (options?.excludeId) params.set("excludeId", String(options.excludeId));
   if (options?.lessonId) params.set("lessonId", String(options.lessonId));
   return fetchApi(`/items/random/${count}?${params}`);
@@ -112,8 +116,8 @@ export async function submitAnswer(
 
 // Get due reviews for the current user
 export async function getDueReviews(
-  limit = 10,
-  locale = "fr",
+  limit = REVIEW_LIMITS.DUE_DEFAULT,
+  locale = DEFAULT_LOCALE,
 ): Promise<StudyItem[]> {
   return fetchApi<StudyItem[]>(`/reviews/due?locale=${locale}&limit=${limit}`);
 }
@@ -125,9 +129,9 @@ export async function getUserStats(): Promise<UserStatsResponse> {
 
 // Get today's learning session
 export async function getTodaySession(
-  newLimit = 5,
-  dueLimit = 20,
-  locale = "fr",
+  newLimit = REVIEW_LIMITS.NEW_DEFAULT,
+  dueLimit = REVIEW_LIMITS.DUE_DEFAULT,
+  locale = DEFAULT_LOCALE,
 ): Promise<TodaySession> {
   return fetchApi<TodaySession>(
     `/reviews/today?locale=${locale}&newLimit=${newLimit}&dueLimit=${dueLimit}`,

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { items as itemsTable } from "../db/schema";
 import { eq, sql, ne, and } from "drizzle-orm";
 import { selectDistractors } from "../db/queries/items";
+import { DEFAULT_LOCALE } from "@aslema/shared";
 
 const itemsRouter = new Hono();
 
@@ -9,7 +10,7 @@ itemsRouter.get("/random/:count", async (c) => {
   const count = parseInt(c.req.param("count"));
   const excludeId = c.req.query("excludeId");
   const lessonId = c.req.query("lessonId");
-  const locale = c.req.query("locale") || "fr";
+  const locale = c.req.query("locale") || DEFAULT_LOCALE;
 
   const conditions = [];
   if (excludeId) {

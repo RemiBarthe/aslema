@@ -1,5 +1,6 @@
 import { db } from "./db";
 import { lessons, items, itemTranslations, tags, itemTags } from "./db/schema";
+import { DEFAULT_LOCALE } from "@aslema/shared";
 
 const seedLessons = [
   {
@@ -233,7 +234,7 @@ async function seed() {
     await db.insert(items).values(itemData);
     await db
       .insert(itemTranslations)
-      .values({ itemId: item.id, locale: "fr", translation });
+      .values({ itemId: item.id, locale: DEFAULT_LOCALE, translation });
     for (const tagId of tagIds) {
       await db.insert(itemTags).values({ itemId: item.id, tagId });
     }

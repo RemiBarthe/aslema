@@ -10,7 +10,11 @@ import {
   submitAnswer,
   getRandomItems,
 } from "@/lib/api";
-import type { SM2Quality } from "@aslema/shared";
+import {
+  DEFAULT_LOCALE,
+  REVIEW_LIMITS,
+  type SM2Quality,
+} from "@aslema/shared";
 
 // Lessons
 export function useLessons() {
@@ -31,7 +35,7 @@ export function useLesson(id: number) {
 
 export function useLessonItems(
   lessonId: number,
-  locale = "fr",
+  locale = DEFAULT_LOCALE,
   shuffle = false
 ) {
   return useQuery({
@@ -42,7 +46,10 @@ export function useLessonItems(
 }
 
 // Reviews
-export function useDueReviews(locale = "fr", limit = 10) {
+export function useDueReviews(
+  locale = DEFAULT_LOCALE,
+  limit = REVIEW_LIMITS.DUE_DEFAULT
+) {
   return useQuery({
     queryKey: ["reviews", "due", locale],
     queryFn: () => getDueReviews(limit, locale),
@@ -60,7 +67,11 @@ export function useUserStats() {
   });
 }
 
-export function useTodaySession(newLimit = 5, dueLimit = 20, locale = "fr") {
+export function useTodaySession(
+  newLimit = REVIEW_LIMITS.NEW_DEFAULT,
+  dueLimit = REVIEW_LIMITS.DUE_DEFAULT,
+  locale = DEFAULT_LOCALE
+) {
   return useQuery({
     queryKey: ["reviews", "today", newLimit, dueLimit, locale],
     queryFn: () => getTodaySession(newLimit, dueLimit, locale),

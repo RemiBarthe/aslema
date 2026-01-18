@@ -5,6 +5,7 @@ import {
   real,
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
+import { DEFAULT_LOCALE, SM2 } from "@aslema/shared";
 
 // ═══════════════════════════════════════════════════════════════
 // CONTENT TABLES
@@ -47,7 +48,7 @@ export const itemTranslations = sqliteTable(
     itemId: integer("item_id")
       .notNull()
       .references(() => items.id, { onDelete: "cascade" }),
-    locale: text("locale").notNull().default("fr"),
+    locale: text("locale").notNull().default(DEFAULT_LOCALE),
     translation: text("translation").notNull(),
   },
   (table) => [uniqueIndex("item_locale_idx").on(table.itemId, table.locale)]
@@ -87,9 +88,9 @@ export const reviews = sqliteTable(
     itemId: integer("item_id")
       .notNull()
       .references(() => items.id, { onDelete: "cascade" }),
-    easeFactor: real("ease_factor").default(2.5),
-    interval: integer("interval").default(0),
-    repetitions: integer("repetitions").default(0),
+    easeFactor: real("ease_factor").default(SM2.INITIAL_EASE_FACTOR),
+    interval: integer("interval").default(SM2.INITIAL_INTERVAL),
+    repetitions: integer("repetitions").default(SM2.INITIAL_REPETITIONS),
     nextReviewAt: integer("next_review_at", { mode: "timestamp" }),
     lastReviewedAt: integer("last_reviewed_at", { mode: "timestamp" }),
     createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(

@@ -8,7 +8,16 @@ import {
   userStats,
 } from "../db/schema";
 import { eq, sql, lte, and, gte } from "drizzle-orm";
-import type { SM2Quality, SM2Result } from "@aslema/shared";
+import {
+  DEFAULT_LOCALE,
+  REVIEW_LIMITS,
+  REVIEW_REPETITIONS,
+  SM2,
+  TIME,
+  XP_GAINS,
+  type SM2Quality,
+  type SM2Result,
+} from "@aslema/shared";
 import { requireUserId, optionalUserId } from "../middleware/auth";
 import {
   getStartOfDay,
@@ -33,26 +42,30 @@ function calculateSM2(
   let interval = prevInterval;
   let repetitions = prevRepetitions;
 
-  if (quality >= 3) {
+  if (quality >= SM2.QUALITY_MIN_CORRECT) {
     // Correct response
-    if (repetitions === 0) {
-      interval = 1;
-    } else if (repetitions === 1) {
-      interval = 6;
+    if (repetitions === SM2.INITIAL_REPETITIONS) {
+      interval = SM2.FIRST_INTERVAL_DAYS;
+    } else if (repetitions === SM2.SECOND_REPETITION) {
+      interval = SM2.SECOND_INTERVAL_DAYS;
     } else {
       interval = Math.round(prevInterval * easeFactor);
     }
     repetitions += 1;
   } else {
     // Incorrect response - reset
-    repetitions = 0;
-    interval = 1;
+    repetitions = SM2.INITIAL_REPETITIONS;
+    interval = SM2.FIRST_INTERVAL_DAYS;
   }
 
   // Update ease factor
   easeFactor = Math.max(
-    1.3,
-    easeFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02)),
+    SM2.MIN_EASE_FACTOR,
+    easeFactor +
+      (SM2.EASE_BONUS -
+        (SM2.QUALITY_PERFECT - quality) *
+          (SM2.EASE_PENALTY_BASE +
+            (SM2.QUALITY_PERFECT - quality) * SM2.EASE_PENALTY_FACTOR)),
   );
 
   const nextReviewAt = new Date();
@@ -63,8 +76,10 @@ function calculateSM2(
 
 reviews.get("/due", optionalUserId, async (c) => {
   const userId = c.get("userId");
-  const locale = c.req.query("locale") || "fr";
-  const limit = parseInt(c.req.query("limit") || "10");
+  const locale = c.req.query("locale") || DEFAULT_LOCALE;
+  const limit = parseInt(
+    c.req.query("limit") || String(REVIEW_LIMITS.DUE_DEFAULT),
+  );
   const now = new Date();
 
   const result = await db
@@ -118,9 +133,9 @@ reviews.post("/:id/answer", requireUserId, async (c) => {
   // Calculate new SM-2 values
   const sm2Result = calculateSM2(
     body.quality,
-    review.easeFactor ?? 2.5,
-    review.interval ?? 0,
-    review.repetitions ?? 0,
+    review.easeFactor ?? SM2.INITIAL_EASE_FACTOR,
+    review.interval ?? SM2.INITIAL_INTERVAL,
+    review.repetitions ?? SM2.INITIAL_REPETITIONS,
   );
 
   // Update review
@@ -145,7 +160,10 @@ reviews.post("/:id/answer", requireUserId, async (c) => {
 
   // Update user stats
   if (body.isCorrect) {
-    const xpGain = body.quality >= 4 ? 15 : 10;
+    const xpGain =
+      body.quality >= SM2.QUALITY_GOOD
+        ? XP_GAINS.QUALITY_GOOD_OR_BETTER
+        : XP_GAINS.QUALITY_OK;
     const now = new Date();
 
     // Get current stats to calculate streak
@@ -204,9 +222,9 @@ reviews.post("/start", requireUserId, async (c) => {
   const values = body.itemIds.map((itemId) => ({
     userId,
     itemId,
-    easeFactor: 2.5,
-    interval: 0,
-    repetitions: 0,
+    easeFactor: SM2.INITIAL_EASE_FACTOR,
+    interval: SM2.INITIAL_INTERVAL,
+    repetitions: SM2.INITIAL_REPETITIONS,
     nextReviewAt: now,
   }));
 
@@ -217,7 +235,9 @@ reviews.post("/start", requireUserId, async (c) => {
 
 reviews.get("/stats", requireUserId, async (c) => {
   const userId = c.get("userId");
-  const dailyNewLimit = parseInt(c.req.query("dailyNewLimit") || "5");
+  const dailyNewLimit = parseInt(
+    c.req.query("dailyNewLimit") || String(REVIEW_LIMITS.NEW_DEFAULT),
+  );
 
   // Get or create user stats
   const [stats] = await db
@@ -241,7 +261,7 @@ reviews.get("/stats", requireUserId, async (c) => {
     .where(
       and(
         eq(reviewsTable.userId, userId),
-        gte(reviewsTable.repetitions, 1),
+        gte(reviewsTable.repetitions, REVIEW_REPETITIONS.DUE_MIN),
         lte(reviewsTable.nextReviewAt, now),
       ),
     );
@@ -251,7 +271,10 @@ reviews.get("/stats", requireUserId, async (c) => {
     .select({ count: sql<number>`COUNT(*)` })
     .from(reviewsTable)
     .where(
-      and(eq(reviewsTable.userId, userId), eq(reviewsTable.repetitions, 0)),
+      and(
+        eq(reviewsTable.userId, userId),
+        eq(reviewsTable.repetitions, SM2.INITIAL_REPETITIONS),
+      ),
     );
   const newItemsBeingLearnedCount = newItemsBeingLearnedResult?.count ?? 0;
 
@@ -304,7 +327,7 @@ reviews.get("/stats", requireUserId, async (c) => {
     .where(
       and(
         eq(reviewsTable.userId, userId),
-        gte(reviewsTable.repetitions, 1),
+        gte(reviewsTable.repetitions, REVIEW_REPETITIONS.DUE_MIN),
         gte(reviewsTable.lastReviewedAt, startOfToday),
       ),
     );
@@ -326,9 +349,13 @@ reviews.get("/stats", requireUserId, async (c) => {
 
 reviews.get("/today", requireUserId, async (c) => {
   const userId = c.get("userId");
-  const locale = c.req.query("locale") || "fr";
-  const newLimit = parseInt(c.req.query("newLimit") || "5");
-  const dueLimit = parseInt(c.req.query("dueLimit") || "20");
+  const locale = c.req.query("locale") || DEFAULT_LOCALE;
+  const newLimit = parseInt(
+    c.req.query("newLimit") || String(REVIEW_LIMITS.NEW_DEFAULT),
+  );
+  const dueLimit = parseInt(
+    c.req.query("dueLimit") || String(REVIEW_LIMITS.DUE_DEFAULT),
+  );
 
   const now = new Date();
   const startOfToday = getStartOfDay(now);
@@ -352,7 +379,7 @@ reviews.get("/today", requireUserId, async (c) => {
     .where(
       and(
         eq(reviewsTable.userId, userId),
-        gte(reviewsTable.repetitions, 1),
+        gte(reviewsTable.repetitions, REVIEW_REPETITIONS.DUE_MIN),
         lte(reviewsTable.nextReviewAt, now),
       ),
     )
@@ -375,7 +402,10 @@ reviews.get("/today", requireUserId, async (c) => {
       sql`${itemTranslations.itemId} = ${items.id} AND ${itemTranslations.locale} = ${locale}`,
     )
     .where(
-      and(eq(reviewsTable.userId, userId), eq(reviewsTable.repetitions, 0)),
+      and(
+        eq(reviewsTable.userId, userId),
+        eq(reviewsTable.repetitions, SM2.INITIAL_REPETITIONS),
+      ),
     );
 
   // Count how many items were created today (started learning today)
@@ -446,7 +476,7 @@ reviews.get("/today", requireUserId, async (c) => {
     .where(
       and(
         eq(reviewsTable.userId, userId),
-        gte(reviewsTable.repetitions, 1),
+        gte(reviewsTable.repetitions, REVIEW_REPETITIONS.DUE_MIN),
         gte(reviewsTable.lastReviewedAt, startOfToday),
       ),
     );
@@ -476,7 +506,7 @@ reviews.post("/dev/simulate-days", requireUserId, async (c) => {
   }
 
   const daysNum = Number(days);
-  const msToSubtract = daysNum * 24 * 60 * 60 * 1000;
+  const msToSubtract = daysNum * TIME.MS_PER_DAY;
 
   // Get all reviews for this user and update them
   const userReviews = await db

@@ -6,11 +6,12 @@ import QcmGame from "./QcmGame.vue";
 import Progress from "@/components/ui/progress/Progress.vue";
 import { Spinner } from "@/components/ui/spinner";
 import { getRandomItems, submitAnswer } from "@/lib/api";
-import type {
-  StudyItem,
-  GameResult,
-  QcmDirection,
-  GameSessionOptions,
+import {
+  QCM,
+  type StudyItem,
+  type GameResult,
+  type QcmDirection,
+  type GameSessionOptions,
 } from "@aslema/shared";
 import { CheckIcon, XIcon } from "lucide-vue-next";
 
@@ -86,7 +87,7 @@ async function loadOptions() {
 
   try {
     // Get distractors from API - prefer same lesson for thematic consistency
-    const distractors = await getRandomItems(3, {
+    const distractors = await getRandomItems(QCM.DISTRACTOR_COUNT, {
       excludeId: currentItem.value.itemId,
       lessonId:
         props.options?.lessonId ?? currentItem.value.lessonId ?? undefined,
@@ -97,14 +98,14 @@ async function loadOptions() {
       const allOptions = [
         currentItem.value.translation,
         ...distractors.map((d) => d.translation).filter(Boolean),
-      ].slice(0, 4);
+      ].slice(0, QCM.OPTIONS_COUNT);
       qcmOptions.value = shuffle(allOptions) as string[];
     } else {
       // Options are Tunisian words
       const allOptions = [
         currentItem.value.tunisian,
         ...distractors.map((d) => d.tunisian).filter(Boolean),
-      ].slice(0, 4);
+      ].slice(0, QCM.OPTIONS_COUNT);
       qcmOptions.value = shuffle(allOptions);
     }
   } catch (error) {
