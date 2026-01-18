@@ -113,3 +113,30 @@ lessons.get("/:id/items", optionalUserId, async (c) => {
 
   return c.json({ success: true, data: result });
 });
+
+// Create a new lesson
+lessons.post("/", async (c) => {
+  const body = await c.req.json();
+  const { title, description, icon } = body;
+
+  if (!title) {
+    return c.json(
+      { success: false, error: "title is required" },
+      400
+    );
+  }
+
+  const result = await db
+    .insert(lessonsTable)
+    .values({
+      title,
+      description: description || null,
+      icon: icon || null,
+    })
+    .returning({ id: lessonsTable.id });
+
+  return c.json({
+    success: true,
+    data: { id: result[0].id },
+  });
+});
