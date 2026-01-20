@@ -13,9 +13,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { BookCheckIcon } from "lucide-vue-next";
+import { BookCheckIcon, Volume2Icon } from "lucide-vue-next";
 import type { Component } from "vue";
 import type { StudyItem } from "@aslema/shared";
+import { useAudio } from "@/composables/useAudio";
 
 defineProps<{
   title: string;
@@ -23,6 +24,8 @@ defineProps<{
   icon: Component;
   colorClass: string; // e.g. "bg-orange-100 dark:bg-orange-900/30 text-orange-600"
 }>();
+
+const { playAudio } = useAudio();
 </script>
 
 <template>
@@ -47,8 +50,15 @@ defineProps<{
           <ItemTitle>{{ item.tunisian }}</ItemTitle>
           <ItemDescription>{{ item.translation }}</ItemDescription>
         </ItemContent>
-        <ItemActions v-if="item.isLearned">
-          <TooltipProvider>
+        <ItemActions>
+          <button
+            v-if="item.audioFile"
+            class="p-1.5 rounded-full hover:bg-muted transition-colors"
+            @click.stop="playAudio(item.audioFile)"
+          >
+            <Volume2Icon class="w-4 h-4 text-muted-foreground" />
+          </button>
+          <TooltipProvider v-if="item.isLearned">
             <Tooltip>
               <TooltipTrigger as-child>
                 <BookCheckIcon class="w-5 h-5 text-green-600" />

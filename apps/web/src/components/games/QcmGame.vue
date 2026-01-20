@@ -10,6 +10,7 @@ import {
   type QcmDirection,
   type SM2Quality,
 } from "@aslema/shared";
+import { useAudio } from "@/composables/useAudio";
 
 const props = defineProps<{
   item: StudyItem;
@@ -52,6 +53,8 @@ const isCorrect = computed(() => selectedAnswer.value === correctAnswer.value);
 const showAudio = computed(
   () => props.direction === "tunisian-to-french" && props.item.audioFile,
 );
+
+const { playAudio } = useAudio();
 
 function selectAnswer(answer: string) {
   if (showResult.value) return;
@@ -110,7 +113,7 @@ function getButtonClass(option: string) {
         <button
           v-if="showAudio"
           class="p-2 rounded-full hover:bg-muted transition-colors"
-          @click.stop
+          @click.stop="playAudio(props.item.audioFile)"
         >
           <Volume2Icon class="w-5 h-5" />
         </button>
