@@ -60,6 +60,31 @@ export async function updateItemAudio(
   });
 }
 
+export async function uploadItemAudio(
+  itemId: number,
+  audioBlob: Blob,
+): Promise<{ filename: string }> {
+  const formData = new FormData();
+  formData.append("audio", audioBlob, "recording.webm");
+
+  const response = await fetch(`${API_URL}/items/${itemId}/upload-audio`, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error(`API Error: ${response.status}`);
+  }
+
+  const json = (await response.json()) as ApiResponse<{ filename: string }>;
+
+  if (!json.success) {
+    throw new Error(json.error || "Unknown error");
+  }
+
+  return json.data as { filename: string };
+}
+
 // Lessons
 export async function getLessons(): Promise<Array<{ id: number; title: string }>> {
   return fetchApi("/lessons");

@@ -10,3 +10,15 @@ export function shuffle<T>(array: T[]): T[] {
   }
   return result;
 }
+
+/**
+ * Converts text to a URL-friendly slug.
+ */
+export function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+}

@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { items as itemsTable, itemTranslations } from "../db/schema";
 import { eq, sql, ne, and, isNull } from "drizzle-orm";
 import { selectDistractors } from "../db/queries/items";
-import { DEFAULT_LOCALE } from "@aslema/shared";
+import { DEFAULT_LOCALE, slugify } from "@aslema/shared";
 import { db } from "../db";
 
 const itemsRouter = new Hono();
@@ -44,8 +44,8 @@ itemsRouter.get("/random-without-audio", async (c) => {
       itemTranslations,
       and(
         eq(itemsTable.id, itemTranslations.itemId),
-        eq(itemTranslations.locale, locale)
-      )
+        eq(itemTranslations.locale, locale),
+      ),
     )
     .where(isNull(itemsTable.audioFile))
     .orderBy(sql`RANDOM()`)
@@ -67,13 +67,13 @@ itemsRouter.post("/", async (c) => {
     difficulty = 1,
     audioFile,
     lessonId,
-    locale = DEFAULT_LOCALE
+    locale = DEFAULT_LOCALE,
   } = body;
 
   if (!tunisian || !translation) {
     return c.json(
       { success: false, error: "tunisian and translation are required" },
-      400
+      400,
     );
   }
 
@@ -111,20 +111,56 @@ itemsRouter.patch("/:id/audio", async (c) => {
   const { audioFile } = body;
 
   if (!audioFile) {
-    return c.json(
-      { success: false, error: "audioFile is required" },
-      400
-    );
+    return c.json({ success: false, error: "audioFile is required" }, 400);
   }
 
-  await db
-    .update(itemsTable)
-    .set({ audioFile })
-    .where(eq(itemsTable.id, id));
+  await db.update(itemsTable).set({ audioFile }).where(eq(itemsTable.id, id));
 
   return c.json({
     success: true,
     data: { success: true },
+  });
+});
+
+itemsRouter.post("/:id/upload-audio", async (c) => {
+  const id = parseInt(c.req.param("id"));
+
+  const formData = await c.req.formData();
+  const audioFile = formData.get("audio") as File | null;
+
+  if (!audioFile) {
+    return c.json({ success: false, error: "audio file is required" }, 400);
+  }
+
+  // Get the item to use tunisian text for filename
+  const item = await db
+    .select({ tunisian: itemsTable.tunisian })
+    .from(itemsTable)
+    .where(eq(itemsTable.id, id))
+    .limit(1);
+
+  if (item.length === 0) {
+    return c.json({ success: false, error: "item not found" }, 404);
+  }
+
+  // Generate filename based on slug of tunisian text
+  const extension = audioFile.name.split(".").pop() || "webm";
+  const slug = slugify(item[0].tunisian);
+  const filename = `${slug}.${extension}`;
+
+  // Save file to public/audio directory
+  const audioDir = "./public/audio";
+  await Bun.write(`${audioDir}/${filename}`, audioFile);
+
+  // Update item with audio filename
+  await db
+    .update(itemsTable)
+    .set({ audioFile: filename })
+    .where(eq(itemsTable.id, id));
+
+  return c.json({
+    success: true,
+    data: { filename },
   });
 });
 

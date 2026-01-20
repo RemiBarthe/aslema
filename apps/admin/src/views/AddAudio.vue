@@ -1,22 +1,28 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { toast } from "vue-sonner";
-import { getRandomItemWithoutAudio, updateItemAudio } from "@/lib/api";
+import { getRandomItemWithoutAudio, uploadItemAudio } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 const currentItem = ref<{
   id: number;
   tunisian: string;
   translation?: string;
 } | null>(null);
-const audioFile = ref("");
 const isLoading = ref(false);
 const isSubmitting = ref(false);
 
+// Audio recording state
+const isRecording = ref(false);
+const audioBlob = ref<Blob | null>(null);
+const audioUrl = ref<string | null>(null);
+const mediaRecorder = ref<MediaRecorder | null>(null);
+
+const hasRecording = computed(() => audioBlob.value !== null);
+
 async function loadRandomItem() {
   isLoading.value = true;
+  resetRecording();
   try {
     const item = await getRandomItemWithoutAudio();
     if (!item) {
@@ -24,7 +30,6 @@ async function loadRandomItem() {
       currentItem.value = null;
     } else {
       currentItem.value = item;
-      audioFile.value = "";
     }
   } catch (error) {
     console.error("Failed to load random item:", error);
@@ -34,22 +39,66 @@ async function loadRandomItem() {
   }
 }
 
+function resetRecording() {
+  if (audioUrl.value) {
+    URL.revokeObjectURL(audioUrl.value);
+  }
+  audioBlob.value = null;
+  audioUrl.value = null;
+  isRecording.value = false;
+}
+
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const recorder = new MediaRecorder(stream);
+    const chunks: Blob[] = [];
+
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) {
+        chunks.push(e.data);
+      }
+    };
+
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: "audio/webm" });
+      audioBlob.value = blob;
+      audioUrl.value = URL.createObjectURL(blob);
+      stream.getTracks().forEach((track) => track.stop());
+    };
+
+    mediaRecorder.value = recorder;
+    recorder.start();
+    isRecording.value = true;
+  } catch (error) {
+    console.error("Failed to start recording:", error);
+    toast.error("Impossible d'accéder au microphone");
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder.value && isRecording.value) {
+    mediaRecorder.value.stop();
+    isRecording.value = false;
+  }
+}
+
 async function handleSubmit() {
-  if (!currentItem.value || !audioFile.value) {
-    toast.error("Veuillez entrer le nom du fichier audio");
+  if (!currentItem.value || !audioBlob.value) {
+    toast.error("Veuillez enregistrer un audio");
     return;
   }
 
   isSubmitting.value = true;
   try {
-    await updateItemAudio(currentItem.value.id, audioFile.value);
+    await uploadItemAudio(currentItem.value.id, audioBlob.value);
     toast.success("Audio ajouté avec succès");
 
     // Load next item
     await loadRandomItem();
   } catch (error) {
-    console.error("Failed to update audio:", error);
-    toast.error("Erreur lors de l'ajout de l'audio");
+    console.error("Failed to upload audio:", error);
+    toast.error("Erreur lors de l'envoi de l'audio");
   } finally {
     isSubmitting.value = false;
   }
@@ -62,7 +111,7 @@ function skip() {
 
 <template>
   <div class="max-w-2xl mx-auto">
-    <h1 class="text-3xl font-bold mb-8">Ajouter un audio à un item</h1>
+    <h1 class="text-3xl font-bold mb-8">Enregistrer un audio</h1>
 
     <div v-if="!currentItem && !isLoading" class="text-center py-12">
       <p class="text-muted-foreground mb-4">
@@ -76,6 +125,7 @@ function skip() {
     </div>
 
     <div v-else-if="currentItem" class="space-y-6">
+      <!-- Item display -->
       <div class="p-6 border rounded-lg bg-muted/30">
         <div class="space-y-2">
           <div>
@@ -93,34 +143,92 @@ function skip() {
         </div>
       </div>
 
-      <form @submit.prevent="handleSubmit" class="space-y-6">
-        <div class="space-y-2">
-          <Label for="audioFile">Nom du fichier audio</Label>
-          <Input
-            id="audioFile"
-            v-model="audioFile"
-            placeholder="Ex: aslema.mp3"
-            required
-          />
-          <p class="text-xs text-muted-foreground">
-            Entrez le nom du fichier audio (avec extension)
-          </p>
-        </div>
-
-        <div class="flex gap-3">
-          <Button type="submit" :disabled="isSubmitting" class="flex-1">
-            {{ isSubmitting ? "Enregistrement..." : "Ajouter l'audio" }}
-          </Button>
+      <!-- Audio recorder -->
+      <div class="p-6 border rounded-lg space-y-4">
+        <div class="flex items-center justify-center gap-4">
+          <!-- Record button -->
           <Button
-            type="button"
+            v-if="!isRecording"
+            @click="startRecording"
             variant="outline"
-            @click="skip"
+            size="lg"
+            class="w-16 h-16 rounded-full p-0"
             :disabled="isSubmitting"
           >
-            Passer
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              class="text-red-500"
+            >
+              <circle cx="12" cy="12" r="8" />
+            </svg>
+          </Button>
+
+          <!-- Stop button -->
+          <Button
+            v-else
+            @click="stopRecording"
+            variant="destructive"
+            size="lg"
+            class="w-16 h-16 rounded-full p-0 animate-pulse"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <rect x="6" y="6" width="12" height="12" rx="2" />
+            </svg>
           </Button>
         </div>
-      </form>
+
+        <p class="text-center text-sm text-muted-foreground">
+          <span v-if="isRecording" class="text-red-500 font-medium"
+            >Enregistrement en cours...</span
+          >
+          <span v-else-if="!hasRecording"
+            >Cliquez pour enregistrer</span
+          >
+          <span v-else>Enregistrement terminé</span>
+        </p>
+
+        <!-- Audio player -->
+        <div v-if="hasRecording && audioUrl" class="space-y-3">
+          <audio :src="audioUrl" controls class="w-full" />
+          <Button
+            variant="ghost"
+            size="sm"
+            @click="resetRecording"
+            class="w-full"
+          >
+            Recommencer
+          </Button>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex gap-3">
+        <Button
+          @click="handleSubmit"
+          :disabled="!hasRecording || isSubmitting"
+          class="flex-1"
+        >
+          {{ isSubmitting ? "Envoi en cours..." : "Envoyer" }}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          @click="skip"
+          :disabled="isSubmitting"
+        >
+          Passer
+        </Button>
+      </div>
     </div>
   </div>
 </template>

@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+import { serveStatic } from "hono/bun";
 import { lessons } from "./routes/lessons";
 import { items } from "./routes/items";
 import { reviews } from "./routes/reviews";
@@ -16,6 +17,9 @@ app.use(
     credentials: true,
   })
 );
+
+// Serve static audio files
+app.use("/audio/*", serveStatic({ root: "./public" }));
 
 // Health check
 app.get("/", (c) => c.json({ status: "ok", message: "Tunisian API 🇹🇳" }));
