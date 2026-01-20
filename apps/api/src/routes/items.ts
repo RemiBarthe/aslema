@@ -143,13 +143,12 @@ itemsRouter.post("/:id/upload-audio", async (c) => {
     return c.json({ success: false, error: "item not found" }, 404);
   }
 
-  // Generate filename based on slug of tunisian text
-  const extension = audioFile.name.split(".").pop() || "webm";
+  const audioDir = "./public/audio";
   const slug = slugify(item[0].tunisian);
+  const extension = audioFile.name.split(".").pop() || "webm";
   const filename = `${slug}.${extension}`;
 
-  // Save file to public/audio directory
-  const audioDir = "./public/audio";
+  // Save file directly (processing done client-side)
   await Bun.write(`${audioDir}/${filename}`, audioFile);
 
   // Update item with audio filename

@@ -2,6 +2,7 @@
 import { ref, computed } from "vue";
 import { toast } from "vue-sonner";
 import { getRandomItemWithoutAudio, uploadItemAudio } from "@/lib/api";
+import { normalizeAudio } from "@/lib/audio";
 import { Button } from "@/components/ui/button";
 
 const currentItem = ref<{
@@ -91,7 +92,9 @@ async function handleSubmit() {
 
   isSubmitting.value = true;
   try {
-    await uploadItemAudio(currentItem.value.id, audioBlob.value);
+    // Normalize audio volume before upload
+    const normalizedBlob = await normalizeAudio(audioBlob.value);
+    await uploadItemAudio(currentItem.value.id, normalizedBlob);
     toast.success("Audio ajouté avec succès");
 
     // Load next item

@@ -65,7 +65,7 @@ export async function uploadItemAudio(
   audioBlob: Blob,
 ): Promise<{ filename: string }> {
   const formData = new FormData();
-  formData.append("audio", audioBlob, "recording.webm");
+  formData.append("audio", audioBlob, "recording.mp3");
 
   const response = await fetch(`${API_URL}/items/${itemId}/upload-audio`, {
     method: "POST",
