@@ -17,6 +17,7 @@ import { BookCheckIcon, Volume2Icon } from "lucide-vue-next";
 import type { Component } from "vue";
 import type { StudyItem } from "@aslema/shared";
 import { useAudio } from "@/composables/useAudio";
+import { Button } from "@/components/ui/button";
 
 defineProps<{
   title: string;
@@ -51,13 +52,14 @@ const { playAudio } = useAudio();
           <ItemDescription>{{ item.translation }}</ItemDescription>
         </ItemContent>
         <ItemActions>
-          <button
+          <Button
             v-if="item.audioFile"
-            class="p-1.5 rounded-full hover:bg-muted transition-colors"
+            size="icon-sm"
+            variant="ghost"
             @click.stop="playAudio(item.audioFile)"
           >
-            <Volume2Icon class="w-4 h-4 text-muted-foreground" />
-          </button>
+            <Volume2Icon />
+          </Button>
           <TooltipProvider v-if="item.isLearned">
             <Tooltip>
               <TooltipTrigger as-child>
