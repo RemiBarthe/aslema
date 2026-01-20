@@ -25,6 +25,7 @@ export function selectDistractors(locale = DEFAULT_LOCALE) {
     .select({
       tunisian: items.tunisian,
       translation: itemTranslations.translation,
+      audioFile: items.audioFile,
     })
     .from(items)
     .leftJoin(

@@ -30,4 +30,11 @@ export interface ItemTranslation {
 export interface Distractor {
   tunisian: string;
   translation: string | null;
+  audioFile: string | null;
+}
+
+// Option for QCM with audio support
+export interface QcmOption {
+  text: string;
+  audioFile: string | null;
 }

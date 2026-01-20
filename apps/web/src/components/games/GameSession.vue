@@ -12,6 +12,7 @@ import {
   type GameResult,
   type QcmDirection,
   type GameSessionOptions,
+  type QcmOption,
 } from "@aslema/shared";
 import { CheckIcon, XIcon } from "lucide-vue-next";
 
@@ -34,7 +35,7 @@ const queryClient = useQueryClient();
 // Session state
 const currentIndex = ref(0);
 const results = ref<GameResult[]>([]);
-const qcmOptions = ref<string[]>([]);
+const qcmOptions = ref<QcmOption[]>([]);
 const currentDirection = ref<QcmDirection>("tunisian-to-french");
 const isLoading = ref(false);
 
@@ -94,17 +95,25 @@ async function loadOptions() {
     });
 
     if (currentDirection.value === "tunisian-to-french") {
-      // Options are French translations
-      const allOptions = [
-        currentItem.value.translation,
-        ...distractors.map((d) => d.translation).filter(Boolean),
+      // Options are French translations (no audio for French)
+      const allOptions: QcmOption[] = [
+        { text: currentItem.value.translation, audioFile: null },
+        ...distractors
+          .filter((d) => d.translation)
+          .map((d) => ({ text: d.translation!, audioFile: null })),
       ].slice(0, QCM.OPTIONS_COUNT);
-      qcmOptions.value = shuffle(allOptions) as string[];
+      qcmOptions.value = shuffle(allOptions);
     } else {
-      // Options are Tunisian words
-      const allOptions = [
-        currentItem.value.tunisian,
-        ...distractors.map((d) => d.tunisian).filter(Boolean),
+      // Options are Tunisian words (with audio if available)
+      const allOptions: QcmOption[] = [
+        {
+          text: currentItem.value.tunisian,
+          audioFile: currentItem.value.audioFile,
+        },
+        ...distractors.map((d) => ({
+          text: d.tunisian,
+          audioFile: d.audioFile,
+        })),
       ].slice(0, QCM.OPTIONS_COUNT);
       qcmOptions.value = shuffle(allOptions);
     }
@@ -113,9 +122,16 @@ async function loadOptions() {
     toast.error("Erreur lors du chargement des options");
     // Fallback: just use the correct answer
     if (currentDirection.value === "tunisian-to-french") {
-      qcmOptions.value = [currentItem.value.translation];
+      qcmOptions.value = [
+        { text: currentItem.value.translation, audioFile: null },
+      ];
     } else {
-      qcmOptions.value = [currentItem.value.tunisian];
+      qcmOptions.value = [
+        {
+          text: currentItem.value.tunisian,
+          audioFile: currentItem.value.audioFile,
+        },
+      ];
     }
   } finally {
     isLoading.value = false;

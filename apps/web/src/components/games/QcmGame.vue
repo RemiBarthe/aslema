@@ -9,12 +9,13 @@ import {
   type GameResult,
   type QcmDirection,
   type SM2Quality,
+  type QcmOption,
 } from "@aslema/shared";
 import { useAudio } from "@/composables/useAudio";
 
 const props = defineProps<{
   item: StudyItem;
-  options: string[];
+  options: QcmOption[];
   direction: QcmDirection;
 }>();
 
@@ -22,7 +23,7 @@ const emit = defineEmits<{
   answer: [result: GameResult];
 }>();
 
-const selectedAnswer = ref<string | null>(null);
+const selectedAnswer = ref<QcmOption | null>(null);
 const showResult = ref(false);
 const startTime = ref(Date.now());
 
@@ -47,7 +48,9 @@ const instruction = computed(() =>
     : "Traduis en tunisien",
 );
 
-const isCorrect = computed(() => selectedAnswer.value === correctAnswer.value);
+const isCorrect = computed(
+  () => selectedAnswer.value?.text === correctAnswer.value,
+);
 
 // Show audio button only for tunisian question
 const showAudio = computed(
@@ -56,14 +59,14 @@ const showAudio = computed(
 
 const { playAudio } = useAudio();
 
-function selectAnswer(answer: string) {
+function selectAnswer(option: QcmOption) {
   if (showResult.value) return;
 
-  selectedAnswer.value = answer;
+  selectedAnswer.value = option;
   showResult.value = true;
 
   const responseTimeMs = Date.now() - startTime.value;
-  const correct = answer === correctAnswer.value;
+  const correct = option.text === correctAnswer.value;
 
   // Calculate SM-2 quality based on correctness and response time
   let quality: SM2Quality;
@@ -85,21 +88,22 @@ function selectAnswer(answer: string) {
       isCorrect: correct,
       quality,
       responseTimeMs,
-      userAnswer: answer,
+      userAnswer: option.text,
     });
   }, QCM.ANSWER_DELAY_MS);
 }
 
-function getButtonVariant(option: string) {
+function getButtonVariant(option: QcmOption) {
   if (!showResult.value) return "outline";
-  if (option === correctAnswer.value) return "default";
-  if (option === selectedAnswer.value) return "destructive";
+  if (option.text === correctAnswer.value) return "default";
+  if (option.text === selectedAnswer.value?.text) return "destructive";
   return "outline";
 }
 
-function getButtonClass(option: string) {
+function getButtonClass(option: QcmOption) {
   if (!showResult.value) return "";
-  if (option === correctAnswer.value) return "bg-green-600 border-green-600";
+  if (option.text === correctAnswer.value)
+    return "bg-green-600 border-green-600";
 }
 </script>
 
@@ -110,38 +114,51 @@ function getButtonClass(option: string) {
       <p class="text-sm text-muted-foreground">{{ instruction }}</p>
       <div class="flex items-center justify-center gap-3">
         <h2 class="text-3xl font-bold font-heading">{{ question }}</h2>
-        <button
+        <Button
           v-if="showAudio"
-          class="p-2 rounded-full hover:bg-muted transition-colors"
+          size="icon-lg"
+          variant="ghost"
           @click.stop="playAudio(props.item.audioFile)"
         >
           <Volume2Icon class="w-5 h-5" />
-        </button>
+        </Button>
       </div>
     </div>
 
     <!-- Options -->
     <div class="grid grid-cols-1 gap-3">
-      <Button
-        v-for="option in options"
-        :key="option"
-        :variant="getButtonVariant(option)"
-        :class="['h-14 text-lg justify-start', getButtonClass(option)]"
-        :disabled="showResult"
-        @click="selectAnswer(option)"
-      >
-        <span class="flex-1 text-left">{{ option }}</span>
-        <CheckIcon
-          v-if="showResult && option === correctAnswer"
-          class="w-5 h-5 text-white"
-        />
-        <XIcon
-          v-else-if="
-            showResult && option === selectedAnswer && option !== correctAnswer
-          "
-          class="w-5 h-5 text-white"
-        />
-      </Button>
+      <div v-for="option in options" :key="option.text" class="flex gap-2">
+        <Button
+          :variant="getButtonVariant(option)"
+          :class="['h-14 text-lg justify-start flex-1', getButtonClass(option)]"
+          :disabled="showResult"
+          @click="selectAnswer(option)"
+        >
+          <span class="flex-1 text-left">{{ option.text }}</span>
+          <CheckIcon
+            v-if="showResult && option.text === correctAnswer"
+            class="w-5 h-5 text-white"
+          />
+          <XIcon
+            v-else-if="
+              showResult &&
+              option.text === selectedAnswer?.text &&
+              option.text !== correctAnswer
+            "
+            class="w-5 h-5 text-white"
+          />
+        </Button>
+
+        <Button
+          v-if="option.audioFile"
+          size="icon-lg"
+          variant="ghost"
+          class="h-14 w-14"
+          @click.stop="playAudio(option.audioFile)"
+        >
+          <Volume2Icon />
+        </Button>
+      </div>
     </div>
 
     <!-- Feedback -->
