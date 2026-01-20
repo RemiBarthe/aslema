@@ -15,6 +15,7 @@ import {
   SM2,
   TIME,
   XP_GAINS,
+  shuffle,
   type SM2Quality,
   type SM2Result,
 } from "@aslema/shared";
@@ -361,7 +362,8 @@ reviews.get("/today", requireUserId, async (c) => {
   const startOfToday = getStartOfDay(now);
 
   // Get items to review (repetitions >= 1 AND nextReviewAt <= now)
-  const dueReviews = await db
+  // Get more items than needed to randomize from the lowest difficulties
+  const dueReviewsRaw = await db
     .select({
       itemId: items.id,
       tunisian: items.tunisian,
@@ -369,6 +371,7 @@ reviews.get("/today", requireUserId, async (c) => {
       audioFile: items.audioFile,
       reviewId: reviewsTable.id,
       lessonId: items.lessonId,
+      _difficulty: items.difficulty, // Only for ordering
     })
     .from(reviewsTable)
     .innerJoin(items, eq(reviewsTable.itemId, items.id))
@@ -383,10 +386,14 @@ reviews.get("/today", requireUserId, async (c) => {
         lte(reviewsTable.nextReviewAt, now),
       ),
     )
-    .limit(dueLimit);
+    .orderBy(items.difficulty)
+    .limit(dueLimit * 2);
+
+  // Remove _difficulty field and randomize
+  const dueReviews = shuffle(dueReviewsRaw).slice(0, dueLimit).map(({ _difficulty, ...item }) => item);
 
   // Get new items being learned (repetitions = 0, already in reviews table)
-  const newItemsBeingLearned = await db
+  const newItemsBeingLearnedRaw = await db
     .select({
       itemId: items.id,
       tunisian: items.tunisian,
@@ -394,6 +401,7 @@ reviews.get("/today", requireUserId, async (c) => {
       audioFile: items.audioFile,
       reviewId: reviewsTable.id,
       lessonId: items.lessonId,
+      _difficulty: items.difficulty, // Only for ordering
     })
     .from(reviewsTable)
     .innerJoin(items, eq(reviewsTable.itemId, items.id))
@@ -406,7 +414,10 @@ reviews.get("/today", requireUserId, async (c) => {
         eq(reviewsTable.userId, userId),
         eq(reviewsTable.repetitions, SM2.INITIAL_REPETITIONS),
       ),
-    );
+    )
+    .orderBy(items.difficulty);
+
+  const newItemsBeingLearned = shuffle(newItemsBeingLearnedRaw).map(({ _difficulty, ...item }) => item);
 
   // Count how many items were created today (started learning today)
   const [{ startedToday }] = await db
@@ -428,7 +439,8 @@ reviews.get("/today", requireUserId, async (c) => {
     0,
     Math.min(remainingNewToday, newLimit - newItemsBeingLearnedCount),
   );
-  const trulyNewItems =
+  // Get truly new items sorted by difficulty, get more to randomize
+  const trulyNewItemsRaw =
     remainingSlots > 0
       ? await db
           .select({
@@ -438,6 +450,7 @@ reviews.get("/today", requireUserId, async (c) => {
             audioFile: items.audioFile,
             reviewId: sql<number | null>`NULL`,
             lessonId: items.lessonId,
+            _difficulty: items.difficulty, // Only for ordering
           })
           .from(items)
           .leftJoin(
@@ -450,15 +463,17 @@ reviews.get("/today", requireUserId, async (c) => {
             WHERE ${reviewsTable.userId} = ${userId}
           )`,
           )
-          .orderBy(items.orderIndex)
-          .limit(remainingSlots)
+          .orderBy(items.difficulty)
+          .limit(remainingSlots * 2)
       : [];
+
+  const trulyNewItems = shuffle(trulyNewItemsRaw).slice(0, remainingSlots).map(({ _difficulty, ...item }) => item);
 
   // Combine new items being learned + truly new items
   const newItems = [...newItemsBeingLearned, ...trulyNewItems];
 
   // Get items learned today (reviewed today, repetitions >= 1)
-  const learnedTodayItems = await db
+  const learnedTodayItemsRaw = await db
     .select({
       itemId: items.id,
       tunisian: items.tunisian,
@@ -466,6 +481,7 @@ reviews.get("/today", requireUserId, async (c) => {
       audioFile: items.audioFile,
       reviewId: reviewsTable.id,
       lessonId: items.lessonId,
+      _difficulty: items.difficulty, // Only for ordering
     })
     .from(reviewsTable)
     .innerJoin(items, eq(reviewsTable.itemId, items.id))
@@ -479,7 +495,10 @@ reviews.get("/today", requireUserId, async (c) => {
         gte(reviewsTable.repetitions, REVIEW_REPETITIONS.DUE_MIN),
         gte(reviewsTable.lastReviewedAt, startOfToday),
       ),
-    );
+    )
+    .orderBy(items.difficulty);
+
+  const learnedTodayItems = shuffle(learnedTodayItemsRaw).map(({ _difficulty, ...item }) => item);
 
   return c.json({
     success: true,

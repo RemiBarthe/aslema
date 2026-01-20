@@ -8,7 +8,9 @@ import { Label } from "@/components/ui/label";
 
 const tunisian = ref("");
 const translation = ref("");
-const type = ref<"word" | "phrase" | "expression" | "dialogue" | "verb">("word");
+const type = ref<"word" | "phrase" | "expression" | "dialogue" | "verb">(
+  "word",
+);
 const difficulty = ref(1);
 const audioFile = ref("");
 const lessonId = ref<number | undefined>(undefined);
@@ -58,8 +60,6 @@ async function handleSubmit() {
     // Reset form
     tunisian.value = "";
     translation.value = "";
-    type.value = "word";
-    difficulty.value = 1;
     audioFile.value = "";
   } catch (error) {
     console.error("Failed to create item:", error);
@@ -134,7 +134,11 @@ async function handleCreateLesson() {
             v-model="type"
             class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
-            <option v-for="itemType in itemTypes" :key="itemType.value" :value="itemType.value">
+            <option
+              v-for="itemType in itemTypes"
+              :key="itemType.value"
+              :value="itemType.value"
+            >
               {{ itemType.label }}
             </option>
           </select>
