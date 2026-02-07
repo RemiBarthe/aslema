@@ -38,6 +38,8 @@ const results = ref<GameResult[]>([]);
 const qcmOptions = ref<QcmOption[]>([]);
 const currentDirection = ref<QcmDirection>("tunisian-to-french");
 const isLoading = ref(false);
+const comboCount = ref(0);
+const showCombo = ref(false);
 
 const currentItem = computed((): StudyItem | null => {
   return props.items[currentIndex.value] ?? null;
@@ -55,6 +57,24 @@ const correctCount = computed(
 const incorrectCount = computed(
   () => results.value.filter((r) => !r.isCorrect).length,
 );
+
+// Combo color based on streak
+const comboColor = computed(() => {
+  if (comboCount.value >= 10) return "text-purple-500";
+  if (comboCount.value >= 5) return "text-red-500";
+  return "text-orange-500";
+});
+
+// Handle validation (for combo update)
+function handleValidate(isCorrect: boolean) {
+  if (isCorrect) {
+    comboCount.value++;
+    showCombo.value = comboCount.value >= 2;
+  } else {
+    comboCount.value = 0;
+    showCombo.value = false;
+  }
+}
 
 // Pick a random direction
 function pickRandomDirection(): QcmDirection {
@@ -141,6 +161,7 @@ async function loadOptions() {
 // Handle answer
 async function handleAnswer(result: GameResult) {
   results.value.push(result);
+  showCombo.value = false;
 
   // Submit to API only if tracking progress and we have a reviewId
   if (props.options?.trackProgress && result.reviewId) {
@@ -185,7 +206,17 @@ watch(
     <!-- Progress bar -->
     <div class="space-y-2">
       <div class="flex justify-between text-sm text-muted-foreground">
-        <span>{{ currentIndex + 1 }} / {{ items.length }}</span>
+        <div class="flex items-center gap-4">
+          <span>{{ currentIndex + 1 }} / {{ items.length }}</span>
+
+          <span
+            v-if="showCombo"
+            :key="comboCount"
+            :class="['combo-animation text-xs font-bold', comboColor]"
+          >
+            COMBO x{{ comboCount }}
+          </span>
+        </div>
         <div class="flex gap-4">
           <span class="flex gap-0.5 items-center">
             <CheckIcon class="w-4 h-4" /> {{ correctCount }}
@@ -211,8 +242,29 @@ watch(
         :item="currentItem"
         :options="qcmOptions"
         :direction="currentDirection"
+        @validate="handleValidate"
         @answer="handleAnswer"
       />
     </template>
   </div>
 </template>
+
+<style scoped>
+.combo-animation {
+  animation: combo-pop 0.3s ease-out;
+}
+
+@keyframes combo-pop {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+</style>

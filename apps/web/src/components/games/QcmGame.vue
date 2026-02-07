@@ -21,6 +21,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   answer: [result: GameResult];
+  validate: [isCorrect: boolean];
 }>();
 
 const selectedAnswer = ref<QcmOption | null>(null);
@@ -70,6 +71,8 @@ function validateAnswer() {
 
   responseTimeMs.value = Date.now() - startTime.value;
   isValidated.value = true;
+
+  emit("validate", selectedAnswer.value.text === correctAnswer.value);
 }
 
 function continueToNext() {
