@@ -172,19 +172,10 @@ function getButtonClass(option: QcmOption) {
       </div>
     </div>
 
-    <Button
-      v-if="!isValidated"
-      size="lg"
-      class="w-full"
-      :disabled="!selectedAnswer"
-      @click="validateAnswer"
-    >
-      Valider
-    </Button>
-
-    <div v-else class="flex flex-col gap-4">
+    <div class="h-16 flex items-center justify-center">
       <div
-        class="text-center py-4"
+        v-if="isValidated"
+        class="text-center"
         :class="isCorrect ? 'text-green-600' : 'text-red-600'"
       >
         <div class="flex gap-2 items-center justify-center">
@@ -199,10 +190,15 @@ function getButtonClass(option: QcmOption) {
           La bonne réponse : <strong>{{ correctAnswer }}</strong>
         </p>
       </div>
-
-      <Button size="lg" class="w-full" @click="continueToNext">
-        Continuer
-      </Button>
     </div>
+
+    <Button
+      size="lg"
+      class="w-full"
+      :disabled="!selectedAnswer"
+      @click="isValidated ? continueToNext() : validateAnswer()"
+    >
+      {{ isValidated ? "Continuer" : "Valider" }}
+    </Button>
   </div>
 </template>
