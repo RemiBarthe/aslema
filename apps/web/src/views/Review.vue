@@ -15,10 +15,11 @@ import { Spinner } from "@/components/ui/spinner";
 import Button from "@/components/ui/button/Button.vue";
 import { REVIEW_LIMITS } from "@aslema/shared";
 
-const { data: session, isLoading, error } = useTodaySession(
-  REVIEW_LIMITS.NEW_DEFAULT,
-  REVIEW_LIMITS.DUE_DEFAULT
-);
+const {
+  data: session,
+  isLoading,
+  error,
+} = useTodaySession(REVIEW_LIMITS.NEW_DEFAULT, REVIEW_LIMITS.DUE_DEFAULT);
 
 // Counts
 const reviewCount = computed(() => session.value?.dueReviews.length ?? 0);
@@ -42,7 +43,7 @@ const startButtonLabel = computed(() => {
 
 <template>
   <div
-    class="sticky top-16 z-10 bg-background flex items-center justify-between pb-1"
+    class="sticky top-15 z-10 bg-background flex items-center justify-between pb-1"
   >
     <div class="flex items-center gap-2">
       <RouterLink to="/" class="text-muted-foreground hover:text-foreground">

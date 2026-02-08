@@ -39,7 +39,7 @@ const wordListItems = computed(() => items.value ?? []);
 
 <template>
   <div
-    class="sticky top-16 z-10 bg-background flex items-center justify-between pb-1"
+    class="sticky top-15 z-10 bg-background flex items-center justify-between pb-1"
   >
     <div class="flex items-center gap-2">
       <RouterLink to="/" class="text-muted-foreground hover:text-foreground">
