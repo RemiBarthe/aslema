@@ -98,7 +98,6 @@ export async function submitAnswer(
   reviewId: number,
   data: {
     quality: SM2Quality;
-    isCorrect: boolean;
     responseTimeMs?: number;
     userAnswer?: string;
   },

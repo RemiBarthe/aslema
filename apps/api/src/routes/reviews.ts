@@ -75,6 +75,16 @@ function calculateSM2(
   return { easeFactor, interval, repetitions, nextReviewAt };
 }
 
+function parseSM2Quality(value: unknown): SM2Quality | null {
+  if (typeof value !== "number" || !Number.isInteger(value)) {
+    return null;
+  }
+  if (value < 0 || value > SM2.QUALITY_PERFECT) {
+    return null;
+  }
+  return value as SM2Quality;
+}
+
 reviews.get("/due", optionalUserId, async (c) => {
   const userId = c.get("userId");
   const locale = c.req.query("locale") || DEFAULT_LOCALE;
@@ -110,11 +120,28 @@ reviews.post("/:id/answer", requireUserId, async (c) => {
   const userId = c.get("userId");
   const reviewId = parseInt(c.req.param("id"));
   const body = await c.req.json<{
-    quality: SM2Quality;
-    isCorrect: boolean;
-    responseTimeMs?: number;
-    userAnswer?: string;
+    quality: unknown;
+    responseTimeMs?: unknown;
+    userAnswer?: unknown;
   }>();
+
+  const quality = parseSM2Quality(body.quality);
+  if (quality === null) {
+    return c.json(
+      { success: false, error: "quality must be an integer 0-5" },
+      400,
+    );
+  }
+
+  const responseTimeMs =
+    typeof body.responseTimeMs === "number" &&
+    Number.isFinite(body.responseTimeMs) &&
+    body.responseTimeMs >= 0
+      ? Math.round(body.responseTimeMs)
+      : null;
+
+  const userAnswer =
+    typeof body.userAnswer === "string" ? body.userAnswer.slice(0, 1024) : null;
 
   // Get current review
   const [review] = await db
@@ -131,9 +158,12 @@ reviews.post("/:id/answer", requireUserId, async (c) => {
     return c.json({ success: false, error: "Unauthorized" }, 403);
   }
 
+  const now = new Date();
+  const isCorrect = quality >= SM2.QUALITY_MIN_CORRECT;
+
   // Calculate new SM-2 values
   const sm2Result = calculateSM2(
-    body.quality,
+    quality,
     review.easeFactor ?? SM2.INITIAL_EASE_FACTOR,
     review.interval ?? SM2.INITIAL_INTERVAL,
     review.repetitions ?? SM2.INITIAL_REPETITIONS,
@@ -147,25 +177,24 @@ reviews.post("/:id/answer", requireUserId, async (c) => {
       interval: sm2Result.interval,
       repetitions: sm2Result.repetitions,
       nextReviewAt: sm2Result.nextReviewAt,
-      lastReviewedAt: new Date(),
+      lastReviewedAt: now,
     })
     .where(eq(reviewsTable.id, reviewId));
 
   // Record attempt
   await db.insert(attempts).values({
     reviewId,
-    isCorrect: body.isCorrect,
-    responseTimeMs: body.responseTimeMs,
-    userAnswer: body.userAnswer,
+    isCorrect,
+    responseTimeMs,
+    userAnswer,
   });
 
   // Update user stats
-  if (body.isCorrect) {
+  if (isCorrect) {
     const xpGain =
-      body.quality >= SM2.QUALITY_GOOD
+      quality >= SM2.QUALITY_GOOD
         ? XP_GAINS.QUALITY_GOOD_OR_BETTER
         : XP_GAINS.QUALITY_OK;
-    const now = new Date();
 
     // Get current stats to calculate streak
     const [currentStats] = await db
@@ -390,7 +419,9 @@ reviews.get("/today", requireUserId, async (c) => {
     .limit(dueLimit * 2);
 
   // Remove _difficulty field and randomize
-  const dueReviews = shuffle(dueReviewsRaw).slice(0, dueLimit).map(({ _difficulty, ...item }) => item);
+  const dueReviews = shuffle(dueReviewsRaw)
+    .slice(0, dueLimit)
+    .map(({ _difficulty, ...item }) => item);
 
   // Get new items being learned (repetitions = 0, already in reviews table)
   const newItemsBeingLearnedRaw = await db
@@ -417,7 +448,9 @@ reviews.get("/today", requireUserId, async (c) => {
     )
     .orderBy(items.difficulty);
 
-  const newItemsBeingLearned = shuffle(newItemsBeingLearnedRaw).map(({ _difficulty, ...item }) => item);
+  const newItemsBeingLearned = shuffle(newItemsBeingLearnedRaw).map(
+    ({ _difficulty, ...item }) => item,
+  );
 
   // Count how many items were created today (started learning today)
   const [{ startedToday }] = await db
@@ -467,7 +500,9 @@ reviews.get("/today", requireUserId, async (c) => {
           .limit(remainingSlots * 2)
       : [];
 
-  const trulyNewItems = shuffle(trulyNewItemsRaw).slice(0, remainingSlots).map(({ _difficulty, ...item }) => item);
+  const trulyNewItems = shuffle(trulyNewItemsRaw)
+    .slice(0, remainingSlots)
+    .map(({ _difficulty, ...item }) => item);
 
   // Combine new items being learned + truly new items
   const newItems = [...newItemsBeingLearned, ...trulyNewItems];
@@ -498,7 +533,9 @@ reviews.get("/today", requireUserId, async (c) => {
     )
     .orderBy(items.difficulty);
 
-  const learnedTodayItems = shuffle(learnedTodayItemsRaw).map(({ _difficulty, ...item }) => item);
+  const learnedTodayItems = shuffle(learnedTodayItemsRaw).map(
+    ({ _difficulty, ...item }) => item,
+  );
 
   return c.json({
     success: true,
@@ -514,88 +551,92 @@ reviews.get("/today", requireUserId, async (c) => {
 // DEV TOOLS (for testing)
 // ═══════════════════════════════════════════════════════════════
 
-// Simulate passing of days (moves nextReviewAt back in time)
-reviews.post("/dev/simulate-days", requireUserId, async (c) => {
-  const userId = c.get("userId");
-  const body = await c.req.json<{ days: number }>();
-  const { days } = body;
+const devToolsEnabled = process.env.ENABLE_DEV_ROUTES === "true";
 
-  if (!days) {
-    return c.json({ success: false, error: "days required" }, 400);
-  }
+if (devToolsEnabled) {
+  // Simulate passing of days (moves nextReviewAt back in time)
+  reviews.post("/dev/simulate-days", requireUserId, async (c) => {
+    const userId = c.get("userId");
+    const body = await c.req.json<{ days: number }>();
+    const { days } = body;
 
-  const daysNum = Number(days);
-  const msToSubtract = daysNum * TIME.MS_PER_DAY;
-
-  // Get all reviews for this user and update them
-  const userReviews = await db
-    .select()
-    .from(reviewsTable)
-    .where(eq(reviewsTable.userId, userId));
-
-  for (const review of userReviews) {
-    const updates: {
-      nextReviewAt?: Date;
-      lastReviewedAt?: Date;
-      createdAt?: Date;
-    } = {};
-
-    if (review.nextReviewAt) {
-      updates.nextReviewAt = new Date(
-        review.nextReviewAt.getTime() - msToSubtract,
-      );
-    }
-    if (review.lastReviewedAt) {
-      updates.lastReviewedAt = new Date(
-        review.lastReviewedAt.getTime() - msToSubtract,
-      );
-    }
-    if (review.createdAt) {
-      updates.createdAt = new Date(review.createdAt.getTime() - msToSubtract);
+    if (!days) {
+      return c.json({ success: false, error: "days required" }, 400);
     }
 
-    if (Object.keys(updates).length > 0) {
-      await db
-        .update(reviewsTable)
-        .set(updates)
-        .where(eq(reviewsTable.id, review.id));
+    const daysNum = Number(days);
+    const msToSubtract = daysNum * TIME.MS_PER_DAY;
+
+    // Get all reviews for this user and update them
+    const userReviews = await db
+      .select()
+      .from(reviewsTable)
+      .where(eq(reviewsTable.userId, userId));
+
+    for (const review of userReviews) {
+      const updates: {
+        nextReviewAt?: Date;
+        lastReviewedAt?: Date;
+        createdAt?: Date;
+      } = {};
+
+      if (review.nextReviewAt) {
+        updates.nextReviewAt = new Date(
+          review.nextReviewAt.getTime() - msToSubtract,
+        );
+      }
+      if (review.lastReviewedAt) {
+        updates.lastReviewedAt = new Date(
+          review.lastReviewedAt.getTime() - msToSubtract,
+        );
+      }
+      if (review.createdAt) {
+        updates.createdAt = new Date(review.createdAt.getTime() - msToSubtract);
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await db
+          .update(reviewsTable)
+          .set(updates)
+          .where(eq(reviewsTable.id, review.id));
+      }
     }
-  }
 
-  // Also update lastActivityAt to simulate time passing
-  const [stats] = await db
-    .select()
-    .from(userStats)
-    .where(eq(userStats.userId, userId));
-
-  if (stats?.lastActivityAt) {
-    const newDate = new Date(stats.lastActivityAt.getTime() - msToSubtract);
-    await db
-      .update(userStats)
-      .set({ lastActivityAt: newDate })
+    // Also update lastActivityAt to simulate time passing
+    const [stats] = await db
+      .select()
+      .from(userStats)
       .where(eq(userStats.userId, userId));
-  }
 
-  return c.json({
-    success: true,
-    data: { message: `Simulated ${days} day(s) passing` },
+    if (stats?.lastActivityAt) {
+      const newDate = new Date(stats.lastActivityAt.getTime() - msToSubtract);
+      await db
+        .update(userStats)
+        .set({ lastActivityAt: newDate })
+        .where(eq(userStats.userId, userId));
+    }
+
+    return c.json({
+      success: true,
+      data: { message: `Simulated ${days} day(s) passing` },
+    });
   });
-});
 
-// Reset all learning progress for a user
-reviews.post("/dev/reset", requireUserId, async (c) => {
-  const userId = c.get("userId");
+  // Reset all learning progress for a user
+  reviews.post("/dev/reset", requireUserId, async (c) => {
+    const userId = c.get("userId");
 
-  // Delete all reviews for this user
-  await db.delete(reviewsTable).where(eq(reviewsTable.userId, userId));
+    // Delete all reviews for this user
+    await db.delete(reviewsTable).where(eq(reviewsTable.userId, userId));
 
-  // Delete all attempts for this user's reviews (already cascade deleted)
+    // Delete all attempts for this user's reviews (already cascade deleted)
 
-  // Reset user stats
-  await db.delete(userStats).where(eq(userStats.userId, userId));
+    // Reset user stats
+    await db.delete(userStats).where(eq(userStats.userId, userId));
 
-  return c.json({
-    success: true,
-    data: { message: "All learning progress reset" },
+    return c.json({
+      success: true,
+      data: { message: "All learning progress reset" },
+    });
   });
-});
+}

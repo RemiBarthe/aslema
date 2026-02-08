@@ -51,7 +51,7 @@ export function useDueReviews(
   limit = REVIEW_LIMITS.DUE_DEFAULT
 ) {
   return useQuery({
-    queryKey: ["reviews", "due", locale],
+    queryKey: ["reviews", "due", locale, limit],
     queryFn: () => getDueReviews(limit, locale),
     staleTime: 1000 * 60,
     refetchOnWindowFocus: true,
@@ -95,7 +95,6 @@ export function useStartLearning() {
 export interface SubmitAnswerParams {
   reviewId: number;
   quality: SM2Quality;
-  isCorrect: boolean;
   responseTimeMs?: number;
   userAnswer?: string;
 }

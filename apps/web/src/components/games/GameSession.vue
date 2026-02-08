@@ -168,7 +168,6 @@ async function handleAnswer(result: GameResult) {
     try {
       await submitAnswer(result.reviewId, {
         quality: result.quality,
-        isCorrect: result.isCorrect,
         responseTimeMs: result.responseTimeMs,
         userAnswer: result.userAnswer,
       });

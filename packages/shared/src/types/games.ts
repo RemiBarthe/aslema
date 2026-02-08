@@ -1,6 +1,6 @@
 import type { SM2Quality } from "./learning";
 
-export type GameType = "qcm" | "fill_blank" | "dictation" | "match" | "write";
+export type GameType = "qcm" | "fill_blank" | "word_order" | "match";
 
 export type QuestionType =
   | "tunisian_to_translation"
