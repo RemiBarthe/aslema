@@ -176,9 +176,9 @@ async function startRecording() {
       }
     };
 
-    recorder.onstop = () => {
+    recorder.onstop = async () => {
       const blob = new Blob(chunks, { type: "audio/webm" });
-      audioBlob.value = blob;
+      audioBlob.value = await normalizeAudio(blob);
       stream.getTracks().forEach((track) => track.stop());
     };
 
