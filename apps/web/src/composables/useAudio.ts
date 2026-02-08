@@ -1,6 +1,6 @@
 import { ref } from "vue";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const CDN_URL = import.meta.env.VITE_CDN_URL || "https://cdn.aslema.app";
 
 // Singleton audio element for playing sounds
 let audioElement: HTMLAudioElement | null = null;
@@ -31,8 +31,8 @@ export function useAudio() {
       audioElement.currentTime = 0;
     }
 
-    // Play new audio
-    const audioUrl = `${API_URL}/audio/${audioFile}`;
+    // Play new audio from CDN
+    const audioUrl = `${CDN_URL}/audio/${audioFile}`;
     audioElement.src = audioUrl;
     currentAudioFile.value = audioFile;
     isPlaying.value = true;

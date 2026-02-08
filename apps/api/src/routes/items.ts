@@ -4,6 +4,7 @@ import { eq, sql, ne, and, isNull } from "drizzle-orm";
 import { selectDistractors } from "../db/queries/items";
 import { DEFAULT_LOCALE, slugify } from "@aslema/shared";
 import { db } from "../db";
+import { uploadToR2 } from "../lib/r2";
 
 const itemsRouter = new Hono();
 
@@ -143,13 +144,17 @@ itemsRouter.post("/:id/upload-audio", async (c) => {
     return c.json({ success: false, error: "item not found" }, 404);
   }
 
-  const audioDir = "./public/audio";
   const slug = slugify(item[0].tunisian);
-  const extension = audioFile.name.split(".").pop() || "webm";
+  const extension = audioFile.name.split(".").pop() || "mp3";
   const filename = `${slug}.${extension}`;
 
-  // Save file directly (processing done client-side)
-  await Bun.write(`${audioDir}/${filename}`, audioFile);
+  // Upload to R2 in audio/ folder
+  const buffer = await audioFile.arrayBuffer();
+  await uploadToR2({
+    key: `audio/${filename}`,
+    body: new Uint8Array(buffer),
+    contentType: audioFile.type || "audio/mpeg",
+  });
 
   // Update item with audio filename
   await db
