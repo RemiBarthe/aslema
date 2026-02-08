@@ -56,7 +56,7 @@ const buttonText = computed(() => {
 
 // Helper for French pluralization
 function pluralize(count: number, singular: string, plural?: string): string {
-  return count <= 1 ? singular : plural ?? singular + "s";
+  return count <= 1 ? singular : (plural ?? singular + "s");
 }
 </script>
 
@@ -162,12 +162,12 @@ function pluralize(count: number, singular: string, plural?: string): string {
           <ItemTitle> {{ lesson.title }}</ItemTitle>
           <ItemDescription>
             {{ lesson.description }}
-
-            <Progress
-              :model-value="lesson.progress"
-              class="mt-2 h-1.5 bg-secondary"
-            />
           </ItemDescription>
+
+          <Progress
+            :model-value="lesson.progress"
+            class="mt-2 h-1.5 bg-secondary"
+          />
         </ItemContent>
 
         <ItemActions>
