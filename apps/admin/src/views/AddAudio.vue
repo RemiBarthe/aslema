@@ -1,8 +1,13 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onUnmounted, watch, nextTick } from "vue";
 import { toast } from "vue-sonner";
+import WaveSurfer from "wavesurfer.js";
+import RegionsPlugin, {
+  type Region,
+} from "wavesurfer.js/dist/plugins/regions.js";
+import { Circle, Square, Play, Pause, RotateCcw } from "lucide-vue-next";
 import { getRandomItemWithoutAudio, uploadItemAudio } from "@/lib/api";
-import { normalizeAudio } from "@/lib/audio";
+import { normalizeAudio, cropAudio } from "@/lib/audio";
 import { Button } from "@/components/ui/button";
 
 const currentItem = ref<{
@@ -16,10 +21,19 @@ const isSubmitting = ref(false);
 // Audio recording state
 const isRecording = ref(false);
 const audioBlob = ref<Blob | null>(null);
-const audioUrl = ref<string | null>(null);
 const mediaRecorder = ref<MediaRecorder | null>(null);
 
+// Wavesurfer state
+const waveformContainer = ref<HTMLElement | null>(null);
+const wavesurfer = ref<WaveSurfer | null>(null);
+const regionsPlugin = ref<RegionsPlugin | null>(null);
+const activeRegion = ref<Region | null>(null);
+const regionStart = ref(0);
+const regionEnd = ref(0);
+const isPlaying = ref(false);
+
 const hasRecording = computed(() => audioBlob.value !== null);
+const hasCropRegion = computed(() => activeRegion.value !== null);
 
 async function loadRandomItem() {
   isLoading.value = true;
@@ -40,19 +54,120 @@ async function loadRandomItem() {
   }
 }
 
-function resetRecording() {
-  if (audioUrl.value) {
-    URL.revokeObjectURL(audioUrl.value);
+function destroyWavesurfer() {
+  if (wavesurfer.value) {
+    wavesurfer.value.destroy();
+    wavesurfer.value = null;
+    regionsPlugin.value = null;
+    activeRegion.value = null;
+    regionStart.value = 0;
+    regionEnd.value = 0;
+    isPlaying.value = false;
   }
+}
+
+function resetRecording() {
+  destroyWavesurfer();
   audioBlob.value = null;
-  audioUrl.value = null;
   isRecording.value = false;
 }
 
+function initWavesurfer(blob: Blob) {
+  if (!waveformContainer.value) return;
+
+  destroyWavesurfer();
+
+  const regions = RegionsPlugin.create();
+  regionsPlugin.value = regions;
+
+  const ws = WaveSurfer.create({
+    container: waveformContainer.value,
+    waveColor: "#a1a1aa",
+    progressColor: "#3b82f6",
+    cursorColor: "#3b82f6",
+    height: 80,
+    normalize: true,
+    barWidth: 2,
+    barGap: 1,
+    barRadius: 2,
+    sampleRate: 48000, // Force consistent sample rate
+    plugins: [regions],
+  });
+
+  ws.loadBlob(blob);
+
+  ws.on("ready", () => {
+    // Create initial region covering full audio
+    const duration = ws.getDuration();
+    const region = regions.addRegion({
+      start: 0,
+      end: duration,
+      color: "rgba(59, 130, 246, 0.2)",
+      drag: true,
+      resize: true,
+    });
+    activeRegion.value = region;
+    regionStart.value = 0;
+    regionEnd.value = duration;
+  });
+
+  ws.on("play", () => {
+    isPlaying.value = true;
+  });
+
+  ws.on("pause", () => {
+    isPlaying.value = false;
+  });
+
+  ws.on("finish", () => {
+    isPlaying.value = false;
+  });
+
+  // Stop playback when reaching the end of the region
+  ws.on("timeupdate", (currentTime: number) => {
+    if (isPlaying.value && currentTime >= regionEnd.value) {
+      ws.pause();
+      ws.setTime(regionStart.value);
+    }
+  });
+
+  // Update region values when it changes
+  regions.on("region-updated", (region: Region) => {
+    activeRegion.value = region;
+    regionStart.value = region.start;
+    regionEnd.value = region.end;
+  });
+
+  wavesurfer.value = ws;
+}
+
+// Watch for blob changes to init wavesurfer
+watch(audioBlob, async (blob) => {
+  if (blob) {
+    // Wait for DOM to update (v-if="hasRecording" to render the container)
+    await nextTick();
+    // Additional small delay for browser rendering
+    setTimeout(() => {
+      if (waveformContainer.value) {
+        initWavesurfer(blob);
+      }
+    }, 10);
+  }
+});
+
 async function startRecording() {
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const recorder = new MediaRecorder(stream);
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: true,
+        autoGainControl: false,
+        sampleRate: 48000,
+      },
+    });
+    const recorder = new MediaRecorder(stream, {
+      mimeType: "audio/webm;codecs=opus",
+    });
     const chunks: Blob[] = [];
 
     recorder.ondataavailable = (e) => {
@@ -64,7 +179,6 @@ async function startRecording() {
     recorder.onstop = () => {
       const blob = new Blob(chunks, { type: "audio/webm" });
       audioBlob.value = blob;
-      audioUrl.value = URL.createObjectURL(blob);
       stream.getTracks().forEach((track) => track.stop());
     };
 
@@ -84,6 +198,18 @@ function stopRecording() {
   }
 }
 
+function togglePlayback() {
+  if (!wavesurfer.value) return;
+
+  if (isPlaying.value) {
+    wavesurfer.value.pause();
+  } else {
+    // Start from region start
+    wavesurfer.value.setTime(regionStart.value);
+    wavesurfer.value.play();
+  }
+}
+
 async function handleSubmit() {
   if (!currentItem.value || !audioBlob.value) {
     toast.error("Veuillez enregistrer un audio");
@@ -92,8 +218,24 @@ async function handleSubmit() {
 
   isSubmitting.value = true;
   try {
+    let processedBlob = audioBlob.value;
+
+    // Crop audio if region is selected and not the full audio
+    if (wavesurfer.value) {
+      const duration = wavesurfer.value.getDuration();
+
+      // Only crop if the region is different from full audio
+      if (regionStart.value > 0.01 || regionEnd.value < duration - 0.01) {
+        processedBlob = await cropAudio(
+          processedBlob,
+          regionStart.value,
+          regionEnd.value,
+        );
+      }
+    }
+
     // Normalize audio volume before upload
-    const normalizedBlob = await normalizeAudio(audioBlob.value);
+    const normalizedBlob = await normalizeAudio(processedBlob);
     await uploadItemAudio(currentItem.value.id, normalizedBlob);
     toast.success("Audio ajouté avec succès");
 
@@ -110,6 +252,10 @@ async function handleSubmit() {
 function skip() {
   loadRandomItem();
 }
+
+onUnmounted(() => {
+  destroyWavesurfer();
+});
 </script>
 
 <template>
@@ -158,16 +304,7 @@ function skip() {
             class="w-16 h-16 rounded-full p-0"
             :disabled="isSubmitting"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              class="text-red-500"
-            >
-              <circle cx="12" cy="12" r="8" />
-            </svg>
+            <Circle class="w-6 h-6 fill-red-500 text-red-500" />
           </Button>
 
           <!-- Stop button -->
@@ -178,15 +315,7 @@ function skip() {
             size="lg"
             class="w-16 h-16 rounded-full p-0 animate-pulse"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <rect x="6" y="6" width="12" height="12" rx="2" />
-            </svg>
+            <Square class="w-6 h-6 fill-current" />
           </Button>
         </div>
 
@@ -194,23 +323,52 @@ function skip() {
           <span v-if="isRecording" class="text-red-500 font-medium"
             >Enregistrement en cours...</span
           >
-          <span v-else-if="!hasRecording"
-            >Cliquez pour enregistrer</span
-          >
-          <span v-else>Enregistrement terminé</span>
+          <span v-else-if="!hasRecording">Cliquez pour enregistrer</span>
+          <span v-else>Glissez les bords pour ajuster la sélection</span>
         </p>
 
-        <!-- Audio player -->
-        <div v-if="hasRecording && audioUrl" class="space-y-3">
-          <audio :src="audioUrl" controls class="w-full" />
-          <Button
-            variant="ghost"
-            size="sm"
-            @click="resetRecording"
-            class="w-full"
+        <!-- Waveform visualization -->
+        <div v-if="hasRecording" class="space-y-3">
+          <div
+            ref="waveformContainer"
+            class="w-full bg-muted/50 rounded-lg overflow-hidden"
+          />
+
+          <div class="flex items-center justify-center gap-2">
+            <!-- Play/Pause button -->
+            <Button
+              variant="outline"
+              size="sm"
+              @click="togglePlayback"
+              class="gap-2"
+            >
+              <Play v-if="!isPlaying" class="w-4 h-4" />
+              <Pause v-else class="w-4 h-4" />
+              {{ isPlaying ? "Pause" : "Écouter" }}
+              <span v-if="hasCropRegion" class="text-xs text-muted-foreground">
+                (sélection)
+              </span>
+            </Button>
+
+            <!-- Reset button -->
+            <Button
+              variant="ghost"
+              size="sm"
+              @click="resetRecording"
+              class="gap-2"
+            >
+              <RotateCcw class="w-4 h-4" />
+              Recommencer
+            </Button>
+          </div>
+
+          <p
+            v-if="hasCropRegion"
+            class="text-center text-xs text-muted-foreground"
           >
-            Recommencer
-          </Button>
+            Sélection: {{ regionStart.toFixed(2) }}s -
+            {{ regionEnd.toFixed(2) }}s
+          </p>
         </div>
       </div>
 

@@ -47,6 +47,9 @@ importers:
       vue-sonner:
         specifier: ^2.0.9
         version: 2.0.9
+      wavesurfer.js:
+        specifier: ^7.12.1
+        version: 7.12.1
     devDependencies:
       '@tailwindcss/vite':
         specifier: ^4.1.18
@@ -1425,6 +1428,9 @@ packages:
       typescript:
         optional: true
 
+  wavesurfer.js@7.12.1:
+    resolution: {integrity: sha512-NswPjVHxk0Q1F/VMRemCPUzSojjuHHisQrBqQiRXg7MVbe3f5vQ6r0rTTXA/a/neC/4hnOEC4YpXca4LpH0SUg==}
+
   web-streams-polyfill@3.3.3:
     resolution: {integrity: sha512-d2JWLCivmZYTSIoge9MsgFCZrt571BikcWGYkjC1khllbTeDlGqZ2D8vD8E/lJa8WGWbb7Plm8/XJYV7IJHZZw==}
     engines: {node: '>= 8'}
@@ -2434,6 +2440,8 @@ snapshots:
       '@vue/shared': 3.5.26
     optionalDependencies:
       typescript: 5.9.3
+
+  wavesurfer.js@7.12.1: {}
 
   web-streams-polyfill@3.3.3: {}
 
