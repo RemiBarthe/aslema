@@ -294,7 +294,10 @@ onUnmounted(() => {
 
       <!-- Audio recorder -->
       <div class="p-6 border rounded-lg space-y-4">
-        <div class="flex items-center justify-center gap-4">
+        <div
+          v-if="!hasRecording"
+          class="flex items-center justify-center gap-4"
+        >
           <!-- Record button -->
           <Button
             v-if="!isRecording"
@@ -345,9 +348,6 @@ onUnmounted(() => {
               <Play v-if="!isPlaying" class="w-4 h-4" />
               <Pause v-else class="w-4 h-4" />
               {{ isPlaying ? "Pause" : "Écouter" }}
-              <span v-if="hasCropRegion" class="text-xs text-muted-foreground">
-                (sélection)
-              </span>
             </Button>
 
             <!-- Reset button -->
