@@ -18,83 +18,6 @@ interface Sound {
   examples: { tunisian: string; french: string }[];
 }
 
-const vowels: Sound[] = [
-  {
-    symbol: "e",
-    name: "voyelle courte",
-    description: "Un son comme le « é » français, très courant en tunisien.",
-    examples: [
-      { tunisian: "me", french: "Eau" },
-      { tunisian: "weld", french: "Garçon" },
-    ],
-  },
-  {
-    symbol: "a",
-    name: "a court",
-    description: "Un « a » bref, comme en français mais plus court.",
-    examples: [
-      { tunisian: "bab", french: "Porte" },
-      { tunisian: "dar", french: "Maison" },
-    ],
-  },
-  {
-    symbol: "aa",
-    name: "a long",
-    description:
-      "Un « a » allongé, tenu plus longtemps. La durée change le sens du mot !",
-    examples: [
-      { tunisian: "baab", french: "Portes" },
-      { tunisian: "mââ", french: "Eau" },
-    ],
-  },
-  {
-    symbol: "i",
-    name: "i court",
-    description: "Un « i » bref comme en français.",
-    examples: [
-      { tunisian: "fih", french: "Dans (il y a)" },
-      { tunisian: "min", french: "De / Qui" },
-    ],
-  },
-  {
-    symbol: "ii",
-    name: "i long",
-    description: "Un « i » allongé, tenu plus longtemps.",
-    examples: [
-      { tunisian: "kiif", french: "Comment" },
-      { tunisian: "fiil", french: "Éléphant" },
-    ],
-  },
-  {
-    symbol: "ou",
-    name: "ou court",
-    description: "Un « ou » bref comme dans « cou ».",
-    examples: [
-      { tunisian: "foum", french: "Bouche" },
-      { tunisian: "youm", french: "Jour" },
-    ],
-  },
-  {
-    symbol: "ou",
-    name: "ou long",
-    description: "Un « ou » allongé, tenu plus longtemps.",
-    examples: [
-      { tunisian: "nour", french: "Lumière" },
-      { tunisian: "3oud", french: "Bois / Luth" },
-    ],
-  },
-  {
-    symbol: "o",
-    name: "o",
-    description:
-      "Le son « o » (influence italienne/française). N'existe pas en arabe classique.",
-    examples: [
-      { tunisian: "porta", french: "Porte (emprunt)" },
-      { tunisian: "tomatom", french: "Tomates" },
-    ],
-  },
-];
-
 const sounds: Sound[] = [
   {
     symbol: "3",
@@ -141,6 +64,17 @@ const sounds: Sound[] = [
     ],
   },
   {
+    symbol: "r",
+    arabic: "ر",
+    name: "ra",
+    description:
+      "Un « r » roulé comme en espagnol ou en italien. La langue vibre contre le palais, contrairement au « r » français qui vient de la gorge.",
+    examples: [
+      { tunisian: "rajel", french: "Homme" },
+      { tunisian: "dar", french: "Maison" },
+    ],
+  },
+  {
     symbol: "gh",
     arabic: "غ",
     name: "ghayn",
@@ -170,17 +104,17 @@ const sounds: Sound[] = [
       "Le « th » anglais sonore comme dans « this ». Comme « th » mais avec la voix.",
     examples: [
       { tunisian: "dhib", french: "Loup" },
-      { tunisian: "hédha", french: "Celui-ci" },
+      { tunisian: "hedha", french: "Celui-ci" },
     ],
   },
   {
-    symbol: "sh",
-    arabic: "ش",
-    name: "shin",
-    description: "Comme le « ch » français dans « chat ». Facile !",
+    symbol: "e",
+    arabic: "é",
+    name: "voyelle courte",
+    description: "Un son comme le « é » français, très courant en tunisien.",
     examples: [
-      { tunisian: "shems", french: "Soleil" },
-      { tunisian: "chnouwa", french: "Quoi" },
+      { tunisian: "beb", french: "Porte" },
+      { tunisian: "weld", french: "Garçon" },
     ],
   },
 ];
@@ -200,9 +134,10 @@ const sounds: Sound[] = [
     </div>
   </div>
 
-  <h2 class="mt-8 text-lg font-semibold font-heading">Les consonnes</h2>
-  <p class="mt-2 mb-4 text-sm text-muted-foreground">
-    Ces sons sont représentés par des chiffres ou des combinaisons de lettres.
+  <p class="my-4 text-muted-foreground">
+    Le tunisien utilise des sons qui n'existent pas en français. Voici les
+    principaux sons à maîtriser, représentés par des chiffres ou des
+    combinaisons de lettres.
   </p>
 
   <div class="space-y-4">
@@ -229,47 +164,6 @@ const sounds: Sound[] = [
         <div class="mt-3 flex flex-wrap gap-2">
           <button
             v-for="example in sound.examples"
-            :key="example.tunisian"
-            class="inline-flex items-center gap-1.5 bg-muted/50 hover:bg-muted px-2.5 py-1 rounded-md text-sm transition-colors"
-          >
-            <Volume2Icon class="size-3 text-muted-foreground" />
-            <span class="font-semibold">{{ example.tunisian }}</span>
-            <span class="text-muted-foreground">→ {{ example.french }}</span>
-          </button>
-        </div>
-      </ItemContent>
-    </Item>
-  </div>
-
-  <h2 class="mt-10 text-lg font-semibold font-heading">Les voyelles</h2>
-  <p class="mt-2 mb-4 text-sm text-muted-foreground">
-    En tunisien, la durée des voyelles est importante : une voyelle longue peut
-    changer le sens d'un mot.
-  </p>
-
-  <div class="space-y-4">
-    <Item v-for="vowel in vowels" :key="vowel.symbol" variant="outline">
-      <ItemMedia
-        variant="image"
-        class="bg-primary text-primary-foreground rounded-lg text-base font-bold"
-      >
-        {{ vowel.symbol }}
-      </ItemMedia>
-
-      <ItemContent class="flex-1">
-        <ItemTitle>
-          <span class="text-muted-foreground font-normal"
-            >({{ vowel.name }})</span
-          >
-        </ItemTitle>
-
-        <ItemDescription class="mt-1">
-          {{ vowel.description }}
-        </ItemDescription>
-
-        <div class="mt-3 flex flex-wrap gap-2">
-          <button
-            v-for="example in vowel.examples"
             :key="example.tunisian"
             class="inline-flex items-center gap-1.5 bg-muted/50 hover:bg-muted px-2.5 py-1 rounded-md text-sm transition-colors"
           >
