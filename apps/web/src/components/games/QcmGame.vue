@@ -176,7 +176,9 @@ function getButtonClass(option: QcmOption) {
       <div
         v-if="isValidated"
         class="text-center"
-        :class="isCorrect ? 'text-green-600' : 'text-red-600'"
+        :class="[
+          isCorrect ? 'text-green-600 animate-pop' : 'text-red-600 animate-shake',
+        ]"
       >
         <div class="flex gap-2 items-center justify-center">
           <CheckIcon v-if="isCorrect" class="size-5" />

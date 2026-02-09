@@ -211,7 +211,7 @@ watch(
           <span
             v-if="showCombo"
             :key="comboCount"
-            :class="['combo-animation text-xs font-bold', comboColor]"
+            :class="['animate-pop text-xs font-bold', comboColor]"
           >
             COMBO x{{ comboCount }}
           </span>
@@ -247,23 +247,3 @@ watch(
     </template>
   </div>
 </template>
-
-<style scoped>
-.combo-animation {
-  animation: combo-pop 0.3s ease-out;
-}
-
-@keyframes combo-pop {
-  0% {
-    transform: scale(0.5);
-    opacity: 0;
-  }
-  50% {
-    transform: scale(1.3);
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-</style>
