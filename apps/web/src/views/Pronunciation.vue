@@ -20,13 +20,12 @@ interface Sound {
 
 const vowels: Sound[] = [
   {
-    symbol: "é / e",
+    symbol: "e",
     name: "voyelle courte",
-    description:
-      "Un son entre le « e » et le « eu » français, très courant en tunisien. Proche du « e » dans « le ».",
+    description: "Un son comme le « é » français, très courant en tunisien.",
     examples: [
-      { tunisian: "kélb", french: "Chien" },
-      { tunisian: "wéld", french: "Garçon" },
+      { tunisian: "me", french: "Eau" },
+      { tunisian: "weld", french: "Garçon" },
     ],
   },
   {
@@ -39,7 +38,7 @@ const vowels: Sound[] = [
     ],
   },
   {
-    symbol: "aa / â",
+    symbol: "aa",
     name: "a long",
     description:
       "Un « a » allongé, tenu plus longtemps. La durée change le sens du mot !",
@@ -58,7 +57,7 @@ const vowels: Sound[] = [
     ],
   },
   {
-    symbol: "ii / î",
+    symbol: "ii",
     name: "i long",
     description: "Un « i » allongé, tenu plus longtemps.",
     examples: [
@@ -76,7 +75,7 @@ const vowels: Sound[] = [
     ],
   },
   {
-    symbol: "ou / û",
+    symbol: "ou",
     name: "ou long",
     description: "Un « ou » allongé, tenu plus longtemps.",
     examples: [
@@ -138,7 +137,7 @@ const sounds: Sound[] = [
       "Comme le « ch » allemand dans « Bach » ou le « j » espagnol. Un son rauque du fond de la gorge.",
     examples: [
       { tunisian: "5obz", french: "Pain" },
-      { tunisian: "5ali", french: "Vide" },
+      { tunisian: "5ou5", french: "Pêche" },
     ],
   },
   {
@@ -181,7 +180,7 @@ const sounds: Sound[] = [
     description: "Comme le « ch » français dans « chat ». Facile !",
     examples: [
       { tunisian: "shems", french: "Soleil" },
-      { tunisian: "shnou", french: "Quoi" },
+      { tunisian: "chnouwa", french: "Quoi" },
     ],
   },
 ];
@@ -254,12 +253,11 @@ const sounds: Sound[] = [
         variant="image"
         class="bg-primary text-primary-foreground rounded-lg text-base font-bold"
       >
-        {{ vowel.symbol.split(" ")[0] }}
+        {{ vowel.symbol }}
       </ItemMedia>
 
       <ItemContent class="flex-1">
         <ItemTitle>
-          {{ vowel.symbol }}
           <span class="text-muted-foreground font-normal"
             >({{ vowel.name }})</span
           >
