@@ -497,7 +497,7 @@ reviews.get("/today", requireUserId, async (c) => {
           )`,
           )
           .orderBy(items.difficulty)
-          .limit(remainingSlots * 2)
+          .limit(remainingSlots * 10)
       : [];
 
   const trulyNewItems = shuffle(trulyNewItemsRaw)
