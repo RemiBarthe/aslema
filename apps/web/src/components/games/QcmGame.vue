@@ -132,7 +132,7 @@ function getButtonClass(option: QcmOption) {
           variant="ghost"
           @click.stop="playAudio(props.item.audioFile)"
         >
-          <Volume2Icon class="w-5 h-5" />
+          <Volume2Icon class="size-5" />
         </Button>
       </div>
     </div>
@@ -148,7 +148,7 @@ function getButtonClass(option: QcmOption) {
           <span class="flex-1 text-left">{{ option.text }}</span>
           <CheckIcon
             v-if="isValidated && option.text === correctAnswer"
-            class="w-5 h-5 text-white"
+            class="size-5 text-white"
           />
           <XIcon
             v-else-if="
@@ -156,7 +156,7 @@ function getButtonClass(option: QcmOption) {
               option.text === selectedAnswer?.text &&
               option.text !== correctAnswer
             "
-            class="w-5 h-5 text-white"
+            class="size-5 text-white"
           />
         </Button>
 
@@ -164,10 +164,10 @@ function getButtonClass(option: QcmOption) {
           v-if="option.audioFile"
           size="icon-lg"
           variant="ghost"
-          class="h-14 w-14"
+          class="size-14"
           @click.stop="playAudio(option.audioFile)"
         >
-          <Volume2Icon />
+          <Volume2Icon class="size-5" />
         </Button>
       </div>
     </div>
@@ -179,8 +179,8 @@ function getButtonClass(option: QcmOption) {
         :class="isCorrect ? 'text-green-600' : 'text-red-600'"
       >
         <div class="flex gap-2 items-center justify-center">
-          <CheckIcon v-if="isCorrect" class="w-5 h-5" />
-          <XIcon v-else class="w-5 h-5" />
+          <CheckIcon v-if="isCorrect" class="size-5" />
+          <XIcon v-else class="size-5" />
 
           <p class="text-lg font-semibold">
             {{ isCorrect ? "Correct" : "Incorrect" }}

@@ -218,11 +218,11 @@ watch(
         </div>
         <div class="flex gap-4">
           <span class="flex gap-0.5 items-center">
-            <CheckIcon class="w-4 h-4" /> {{ correctCount }}
+            <CheckIcon class="size-4" /> {{ correctCount }}
           </span>
 
           <span class="flex gap-0.5 items-center">
-            <XIcon class="w-4 h-4" /> {{ incorrectCount }}
+            <XIcon class="size-4" /> {{ incorrectCount }}
           </span>
         </div>
       </div>

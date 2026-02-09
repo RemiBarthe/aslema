@@ -56,11 +56,11 @@ async function handleReset() {
           @click="handleSimulateDay"
           title="Simuler +1 jour"
         >
-          <FastForwardIcon class="w-4 h-4" />
+          <FastForwardIcon class="size-4" />
           <span class="hidden sm:inline ml-1">+1 jour</span>
         </Button>
         <Button variant="outline" size="sm" @click="handleReset" title="Reset">
-          <RotateCcwIcon class="w-4 h-4" />
+          <RotateCcwIcon class="size-4" />
           <span class="hidden sm:inline ml-1">Reset</span>
         </Button>
       </div>

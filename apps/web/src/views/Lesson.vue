@@ -54,7 +54,7 @@ const wordListItems = computed(() => items.value ?? []);
 
     <RouterLink v-if="itemCount > 0" :to="`/learn/${lessonId}/session`">
       <Button>
-        <PlayIcon class="mr-2 h-4 w-4" />
+        <PlayIcon class="mr-2 size-4" />
         {{ startButtonLabel }}
       </Button>
     </RouterLink>
@@ -81,7 +81,7 @@ const wordListItems = computed(() => items.value ?? []);
     <div v-else class="space-y-6">
       <!-- Empty state -->
       <div v-if="itemCount === 0" class="text-center py-8 space-y-4">
-        <AlertCircleIcon class="w-16 h-16 mx-auto text-muted-foreground" />
+        <AlertCircleIcon class="size-16 mx-auto text-muted-foreground" />
         <div>
           <h2 class="text-xl font-semibold">Aucun élément</h2>
           <p class="text-muted-foreground">

@@ -304,10 +304,10 @@ onUnmounted(() => {
             @click="startRecording"
             variant="outline"
             size="lg"
-            class="w-16 h-16 rounded-full p-0"
+            class="size-16 rounded-full p-0"
             :disabled="isSubmitting"
           >
-            <Circle class="w-6 h-6 fill-red-500 text-red-500" />
+            <Circle class="size-6 fill-red-500 text-red-500" />
           </Button>
 
           <!-- Stop button -->
@@ -316,9 +316,9 @@ onUnmounted(() => {
             @click="stopRecording"
             variant="destructive"
             size="lg"
-            class="w-16 h-16 rounded-full p-0 animate-pulse"
+            class="size-16 rounded-full p-0 animate-pulse"
           >
-            <Square class="w-6 h-6 fill-current" />
+            <Square class="size-6 fill-current" />
           </Button>
         </div>
 
@@ -345,8 +345,8 @@ onUnmounted(() => {
               @click="togglePlayback"
               class="gap-2"
             >
-              <Play v-if="!isPlaying" class="w-4 h-4" />
-              <Pause v-else class="w-4 h-4" />
+              <Play v-if="!isPlaying" class="size-4" />
+              <Pause v-else class="size-4" />
               {{ isPlaying ? "Pause" : "Écouter" }}
             </Button>
 
@@ -357,7 +357,7 @@ onUnmounted(() => {
               @click="resetRecording"
               class="gap-2"
             >
-              <RotateCcw class="w-4 h-4" />
+              <RotateCcw class="size-4" />
               Recommencer
             </Button>
           </div>

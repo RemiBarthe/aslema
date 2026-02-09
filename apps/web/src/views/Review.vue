@@ -82,7 +82,7 @@ const startButtonLabel = computed(() => {
     <div v-else class="space-y-6">
       <!-- Success message if nothing to practice -->
       <div v-if="totalToPractice === 0" class="text-center py-8 space-y-4">
-        <CheckCircleIcon class="w-16 h-16 mx-auto text-green-500" />
+        <CheckCircleIcon class="size-16 mx-auto text-green-500" />
         <div>
           <h2 class="text-xl font-semibold">Bravo !</h2>
           <p class="text-muted-foreground">Tu as terminé ta session du jour.</p>

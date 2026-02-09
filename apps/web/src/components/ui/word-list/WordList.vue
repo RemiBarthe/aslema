@@ -34,17 +34,17 @@ const { playAudio } = useAudio();
     <h2
       class="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2"
     >
-      <component :is="icon" class="w-4 h-4" />
+      <component :is="icon" class="size-4" />
       {{ title }} ({{ items.length }})
     </h2>
     <div class="space-y-2">
       <Item v-for="item in items" :key="item.itemId" variant="outline">
         <ItemMedia>
           <div
-            class="w-10 h-10 rounded-full flex items-center justify-center"
+            class="size-10 rounded-full flex items-center justify-center"
             :class="colorClass"
           >
-            <component :is="icon" class="w-4 h-4" />
+            <component :is="icon" class="size-4" />
           </div>
         </ItemMedia>
         <ItemContent>
@@ -58,12 +58,12 @@ const { playAudio } = useAudio();
             variant="ghost"
             @click.stop="playAudio(item.audioFile)"
           >
-            <Volume2Icon />
+            <Volume2Icon class="size-5" />
           </Button>
           <TooltipProvider v-if="item.isLearned">
             <Tooltip>
               <TooltipTrigger as-child>
-                <BookCheckIcon class="w-5 h-5 text-green-600" />
+                <BookCheckIcon class="size-5 text-green-600" />
               </TooltipTrigger>
               <TooltipContent>
                 <p class="text-sm">Mot appris</p>

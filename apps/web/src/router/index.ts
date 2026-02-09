@@ -19,6 +19,11 @@ const router = createRouter({
       component: () => import("@/views/ReviewSession.vue"),
     },
     {
+      path: "/pronunciation",
+      name: "pronunciation",
+      component: () => import("@/views/Pronunciation.vue"),
+    },
+    {
       path: "/learn/:lessonId",
       name: "lesson",
       component: () => import("@/views/Lesson.vue"),
