@@ -18,6 +18,8 @@ import {
   FlameIcon,
   RepeatIcon,
   SparklesIcon,
+  ChevronRightIcon,
+  AudioLinesIcon,
 } from "lucide-vue-next";
 import { Spinner } from "@/components/ui/spinner";
 import Button from "@/components/ui/button/Button.vue";
@@ -138,6 +140,29 @@ function pluralize(count: number, singular: string, plural?: string): string {
   </div>
 
   <h2 class="text-lg font-semibold mb-4 font-heading">Leçons</h2>
+
+  <Item variant="outline" class="mb-4" as-child>
+    <RouterLink to="/pronunciation">
+      <ItemMedia
+        variant="image"
+        class="bg-accent-foreground text-white rounded-full"
+      >
+        <AudioLinesIcon class="size-5" />
+      </ItemMedia>
+
+      <ItemContent>
+        <ItemTitle>Apprendre les sons</ItemTitle>
+
+        <ItemDescription>
+          Sons spécifiques du tunisien : 3, 7, 9, gh…
+        </ItemDescription>
+      </ItemContent>
+
+      <ItemActions>
+        <ChevronRightIcon class="size-4" />
+      </ItemActions>
+    </RouterLink>
+  </Item>
 
   <div v-if="isLoading" class="flex justify-center py-8">
     <Spinner />
