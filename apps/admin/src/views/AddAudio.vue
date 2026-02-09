@@ -331,7 +331,7 @@ onUnmounted(() => {
         <div v-if="hasRecording" class="space-y-3">
           <div
             ref="waveformContainer"
-            class="w-full bg-muted/50 rounded-lg overflow-hidden"
+            class="waveform-container w-full bg-muted/50 rounded-lg overflow-hidden"
           />
 
           <div class="flex items-center justify-center gap-2">
@@ -393,3 +393,17 @@ onUnmounted(() => {
     </div>
   </div>
 </template>
+
+<style>
+.waveform-container {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none;
+}
+
+.waveform-container > div::part(region-handle) {
+  width: 10px !important;
+  border-width: 3px !important;
+}
+</style>
