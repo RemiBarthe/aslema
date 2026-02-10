@@ -134,6 +134,9 @@
     @apply border-border outline-ring/50;
     corner-shape: squircle;
   }
+  html {
+    scrollbar-gutter: stable;
+  }
   body {
     @apply bg-background text-foreground;
   }
