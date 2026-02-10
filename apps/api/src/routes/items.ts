@@ -30,6 +30,44 @@ itemsRouter.get("/random/:count", async (c) => {
   return c.json({ success: true, data: result });
 });
 
+// Get items with audio (for editing)
+itemsRouter.get("/with-audio", async (c) => {
+  const locale = c.req.query("locale") || DEFAULT_LOCALE;
+  const search = c.req.query("search") || "";
+  const limit = parseInt(c.req.query("limit") || "50");
+
+  const result = await db
+    .select({
+      id: itemsTable.id,
+      tunisian: itemsTable.tunisian,
+      audioFile: itemsTable.audioFile,
+      translation: itemTranslations.translation,
+    })
+    .from(itemsTable)
+    .leftJoin(
+      itemTranslations,
+      and(
+        eq(itemsTable.id, itemTranslations.itemId),
+        eq(itemTranslations.locale, locale),
+      ),
+    )
+    .where(
+      and(
+        sql`${itemsTable.audioFile} IS NOT NULL`,
+        search
+          ? sql`(${itemsTable.tunisian} LIKE ${"%" + search + "%"} OR ${itemTranslations.translation} LIKE ${"%" + search + "%"})`
+          : undefined,
+      ),
+    )
+    .orderBy(itemsTable.id)
+    .limit(limit);
+
+  return c.json({
+    success: true,
+    data: result,
+  });
+});
+
 // Get a random item without audio
 itemsRouter.get("/random-without-audio", async (c) => {
   const locale = c.req.query("locale") || DEFAULT_LOCALE;

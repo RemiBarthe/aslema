@@ -50,6 +50,19 @@ export async function getRandomItemWithoutAudio(): Promise<{
   return fetchApi("/items/random-without-audio");
 }
 
+export async function getItemsWithAudio(search?: string): Promise<
+  Array<{
+    id: number;
+    tunisian: string;
+    audioFile: string;
+    translation?: string;
+  }>
+> {
+  const params = new URLSearchParams();
+  if (search) params.set("search", search);
+  return fetchApi(`/items/with-audio?${params.toString()}`);
+}
+
 export async function updateItemAudio(
   itemId: number,
   audioFile: string,

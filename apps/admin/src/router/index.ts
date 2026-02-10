@@ -13,6 +13,11 @@ const router = createRouter({
       name: "add-audio",
       component: () => import("@/views/AddAudio.vue"),
     },
+    {
+      path: "/edit-audio",
+      name: "edit-audio",
+      component: () => import("@/views/EditAudio.vue"),
+    },
   ],
 });
 

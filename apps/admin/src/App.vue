@@ -15,6 +15,7 @@ import { Toaster } from "@/components/ui/sonner";
       <nav class="flex gap-4">
         <RouterLink to="/" class="hover:underline">Ajouter Item</RouterLink>
         <RouterLink to="/audio" class="hover:underline">Ajouter Audio</RouterLink>
+        <RouterLink to="/edit-audio" class="hover:underline">Éditer Audio</RouterLink>
       </nav>
     </header>
 
