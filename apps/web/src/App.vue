@@ -45,7 +45,11 @@ async function handleReset() {
     <header
       class="sticky top-0 z-10 p-4 bg-background flex items-center justify-between"
     >
-      <RouterLink to="/" class="font-heading text-xl font-black">
+      <RouterLink
+        to="/"
+        class="font-heading text-xl font-black flex items-center gap-2"
+      >
+        <img src="/logo.svg" alt="Aslema" class="size-6" />
         Aslema
       </RouterLink>
 
